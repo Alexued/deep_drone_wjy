@@ -1,3 +1,7 @@
+"""
+每次更改网络直接复制
+当前为: nets_origin.py
+"""
 import tensorflow as tf
 
 from tensorflow.keras import Model
