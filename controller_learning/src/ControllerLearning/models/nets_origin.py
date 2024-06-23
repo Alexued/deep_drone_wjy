@@ -1,7 +1,3 @@
-"""
-每次更改网络直接复制
-当前为: nets_origin.py
-"""
 import tensorflow as tf
 
 from tensorflow.keras import Model
@@ -148,4 +144,3 @@ class AggressiveNet(Network):
             total_embeddings = states_embeddings
         output = self._control_branch(total_embeddings)
         return output
-

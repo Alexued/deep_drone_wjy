@@ -1,11 +1,8 @@
-"""
-每次更改网络直接复制
-当前为: nets_origin.py
-"""
+import os
 import tensorflow as tf
-
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = "2"
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Dense, Conv2D, LeakyReLU, Conv1D
+from tensorflow.keras.layers import Dense, Conv2D, LeakyReLU, Conv1D, ReLU
 from tensorflow.keras.layers import Flatten, GlobalAveragePooling2D
 
 try:
@@ -47,6 +44,12 @@ class AggressiveNet(Network):
             has_bias (bool, optional): Defaults to True. Conv1d bias?
             learn_affine (bool, optional): Defaults to True. InstanceNorm1d affine?
         """
+        # activation layers option
+        GELU =  tf.keras.layers.Activation('gelu')
+        LReLU = LeakyReLU(alpha=1e-2)
+        dict_activation = {"ReLU": ReLU(), "GELU": GELU, "LeakyReLU": LReLU}
+        activation = dict_activation['ReLU']
+        # 只修改fts_mergenet和states_conv的dilation_rate，增加扩大感受野，把激活函数换为GELU
         if self.config.use_fts_tracks:
             f = 2.0
             # dilation_rate=1时采用普通卷积，dilation_rate=2时采用空洞卷积。
@@ -55,15 +58,15 @@ class AggressiveNet(Network):
             self.pointnet = [Conv2D(int(16 * f), kernel_size=1, strides=1, padding='valid',
                                     dilation_rate=1, use_bias=has_bias, input_shape=input_size),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             GELU,
                              Conv2D(int(32 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             GELU,
                              Conv2D(int(64 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             GELU,
                              Conv2D(int(64 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              GlobalAveragePooling2D()]
@@ -72,13 +75,13 @@ class AggressiveNet(Network):
             input_size = (self.config.seq_len, int(64*f))
             self.fts_mergenet = [Conv1D(int(64 * f), kernel_size=2, strides=1, padding='same',
                                     dilation_rate=1, input_shape=input_size),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
+                                 GELU,
+                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=2),
+                                 GELU,
+                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=4),
+                                 GELU,
+                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=8),
+                                 GELU,
                                  Flatten(),
                                  Dense(int(64*f))]
 
@@ -86,22 +89,21 @@ class AggressiveNet(Network):
         g = 2.0
         self.states_conv = [Conv1D(int(64 * g), kernel_size=2, strides=1, padding='same',
                                 dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
+                             GELU,
+                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=2),
+                             GELU,
+                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=4),
+                             GELU,
+                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=8),
                              Flatten(),
                              Dense(int(64*g))]
-        print(f"states_conv:{self.states_conv}")
 
         self.control_module = [Dense(64*g),
-                               LeakyReLU(alpha=1e-2),
+                               GELU,
                                Dense(32*g),
-                               LeakyReLU(alpha=1e-2),
+                               GELU,
                                Dense(16*g),
-                               LeakyReLU(alpha=1e-2),
+                               GELU,
                                Dense(4)]
 
     def _pointnet_branch(self, single_t_features):
@@ -148,4 +150,3 @@ class AggressiveNet(Network):
             total_embeddings = states_embeddings
         output = self._control_branch(total_embeddings)
         return output
-

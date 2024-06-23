@@ -3,6 +3,7 @@ import glob
 import os
 import pandas as pd
 import tensorflow as tf
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = "2"
 import fnmatch
 import cv2
 import random
@@ -20,6 +21,7 @@ class BodyDataset:
     """
 
     def __init__(self, directory, config, training=True):
+        print(f"Initializing dataset with directory: {directory}, training mode: {training}")
         self.config = config
         self.directory = directory
         self.training = training
@@ -30,15 +32,24 @@ class BodyDataset:
         self.filenames = []
         self.stacked_filenames = [] # Will be used for passing stacked fnames
         img_rootname = 'img_data'
+        print("Starting directory walk")
         for root, dirs, files in os.walk(directory, topdown=True, followlinks=True):
             for name in dirs:
                 if name.startswith(img_rootname):
+                    # print(f'name: {name}')
                     exp_dir = os.path.join(root, name)
+                    # print(f'exp_dir: {exp_dir}')
                     self.experiments.append(os.path.abspath(exp_dir))
+            # print(f"Visited directory: {root}, found directories: {dirs}")
 
         self.num_experiments = len(self.experiments)
+        print(f"Total experiments found: {self.num_experiments}")
+        print(f"Experiments list: {self.experiments}")
         self.img_format = 'npy'
         self.data_format = 'csv'
+        # print(f'========experiments: {self.experiments}========')
+        if self.num_experiments == 0:
+            raise IOError("Did not find any experiment directories in the dataset folder")
 
         for exp_dir in self.experiments:
             try:
@@ -70,6 +81,7 @@ class SafeDataset(BodyDataset):
         self.build_dataset()
 
     def _decode_experiment_dir(self, dir_subpath):
+        print(f"Decoding experiment directory: {dir_subpath}")
         base_path = os.path.basename(dir_subpath)
         parent_dict = os.path.dirname(dir_subpath)
         data_name = 'data' + base_path[8:] + ".csv"
@@ -149,14 +161,19 @@ class SafeDataset(BodyDataset):
             is_valid = False
             img_fname = os.path.join(dir_subpath,
                                      "{:08d}.{}".format(frame_number, self.img_format))
+            
             if os.path.isfile(img_fname) and (rollout_fts_v[frame_number] in good_rollouts):
+                # print('========DEBAG IN IMG_FNAME========')
+                # print(f"File {img_fname} is not valid due to:")
                 is_valid = True
             if is_valid:
+                # print(f"======test is_valid=========")
                 self.features.append(self.preprocess_fts(features_v[frame_number]))
                 self.labels.append(labels_v[frame_number])
                 if self.config.use_fts_tracks:
                     self.filenames.append(img_fname)
                 self.samples += 1
+                # print(f"Added sample {self.samples} with features {self.features[-1]} and labels {self.labels[-1]}")
 
     def preprocess_fts(self, fts):
         """
@@ -302,6 +319,7 @@ class SafeDataset(BodyDataset):
         assert len(self.filenames) == len(self.stacked_filenames)
 
     def _build_dataset(self):
+        print("Building dataset...")
         # Need to take care that rollout_idxs are consistent
         self.features = np.stack(self.features)
         self.features = self.features.astype(np.float32)

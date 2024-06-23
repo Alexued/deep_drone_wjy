@@ -1,11 +1,11 @@
 """
 每次更改网络直接复制
-当前为: nets_origin.py
+当前为: nets_tcn_tf.py
 """
 import tensorflow as tf
 
 from tensorflow.keras import Model
-from tensorflow.keras.layers import Dense, Conv2D, LeakyReLU, Conv1D
+from tensorflow.keras.layers import Dense, Conv2D, LeakyReLU, Conv1D, ReLU, Layer, Activation
 from tensorflow.keras.layers import Flatten, GlobalAveragePooling2D
 
 try:
@@ -34,6 +34,72 @@ class Network(Model):
     def _internal_call(self):
         raise NotImplementedError
 
+# TCN ---
+class Chomp1d(Layer):
+    def __init__(self, chomp_size):
+        super(Chomp1d, self).__init__()
+        self.chomp_size = chomp_size
+
+    def call(self, x):
+        return x[:, :, :-self.chomp_size]
+
+class TemporalBlock(Layer):
+    def __init__(self, n_inputs, n_outputs, kernel_size, stride, dilation, padding, dropout=0.2, activation='relu'):
+        super(TemporalBlock, self).__init__()
+        self.conv1 = Conv1D(n_outputs, kernel_size, strides=stride, padding='causal', dilation_rate=dilation)
+        self.chomp1 = Chomp1d(padding)
+        self.activation1 = Activation(activation)
+        self.dropout1 = tf.keras.layers.SpatialDropout1D(dropout)
+
+        self.conv2 = Conv1D(n_outputs, kernel_size, strides=stride, padding='causal', dilation_rate=dilation)
+        self.chomp2 = Chomp1d(padding)
+        self.activation2 = Activation(activation)
+        self.dropout2 = tf.keras.layers.SpatialDropout1D(dropout)
+
+        self.downsample = Conv1D(n_outputs, 1, padding='same') if n_inputs != n_outputs else lambda x: x
+        # if n_inputs == n_outputs:
+        #     self.downsample = lambda x: x[:, :, :y.shape[2]]
+
+    def call(self, x):
+        y = self.conv1(x)
+        y = self.chomp1(y)
+        y = self.activation1(y)
+        y = self.dropout1(y)
+
+        y = self.conv2(y)
+        y = self.chomp2(y)
+        y = self.activation2(y)
+        y = self.dropout2(y)
+
+        res = self.downsample(x)
+        # res = res[:, :, :y.shape[2]]  # 调整res的时间维度以匹配y
+        if res.shape[2] != y.shape[2]:
+            res = res[:, :, :y.shape[2]]  # 在运行时调整res的时间维度以匹配y
+        # print("y shape:", y.shape)
+        # print("res shape:", res.shape)
+        return tf.keras.activations.relu(y + res)
+
+class TemporalConvNet(Layer):
+    def __init__(self, num_inputs, num_hidden_channels, kernel_size=2, dropout=0.2, activation='relu'):
+        super(TemporalConvNet, self).__init__()
+        self.layers = []
+        num_levels = len(num_hidden_channels)
+        for i in range(num_levels):
+            dilation_size = 2 ** i
+            in_channels = num_inputs if i == 0 else num_hidden_channels[i - 1]
+            out_channels = num_hidden_channels[i]
+            self.layers.append(TemporalBlock(
+                in_channels, out_channels, kernel_size, stride=1, dilation=dilation_size,
+                padding=(kernel_size - 1) * dilation_size, dropout=dropout, activation=activation
+            ))
+
+    def call(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        return x
+    
+# TCN ---
+
 class AggressiveNet(Network):
     def __init__(self, config):
         super(AggressiveNet, self).__init__()
@@ -47,6 +113,11 @@ class AggressiveNet(Network):
             has_bias (bool, optional): Defaults to True. Conv1d bias?
             learn_affine (bool, optional): Defaults to True. InstanceNorm1d affine?
         """
+        # activation layers option
+        GELU =  tf.keras.layers.Activation('gelu')
+        LReLU = LeakyReLU(alpha=1e-2)
+        dict_activation = {"ReLU": ReLU(), "GELU": GELU, "LeakyReLU": LReLU}
+        activation = dict_activation['LeakyReLU']
         if self.config.use_fts_tracks:
             f = 2.0
             # dilation_rate=1时采用普通卷积，dilation_rate=2时采用空洞卷积。
@@ -55,53 +126,56 @@ class AggressiveNet(Network):
             self.pointnet = [Conv2D(int(16 * f), kernel_size=1, strides=1, padding='valid',
                                     dilation_rate=1, use_bias=has_bias, input_shape=input_size),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             activation,
                              Conv2D(int(32 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             activation,
                              Conv2D(int(64 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
-                             LeakyReLU(alpha=1e-2),
+                             activation,
                              Conv2D(int(64 * f), kernel_size=1, strides=1, padding='valid', dilation_rate=1,
                                     use_bias=has_bias),
                              GlobalAveragePooling2D()]
 
             # fts_mergenet是特征轨迹
             input_size = (self.config.seq_len, int(64*f))
-            self.fts_mergenet = [Conv1D(int(64 * f), kernel_size=2, strides=1, padding='same',
-                                    dilation_rate=1, input_shape=input_size),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
-                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                                 LeakyReLU(alpha=1e-2),
-                                 Flatten(),
-                                 Dense(int(64*f))]
+
+            # 将 TCN 架构与其他必要层整合到列表中
+            self.fts_mergenet = [
+                TemporalConvNet(
+                num_inputs=input_size,  # 输入通道数
+                num_hidden_channels=[int(64 * f), int(32 * f), int(32 * f), int(32 * f)],  # 隐藏层通道数
+                kernel_size=2,  # 卷积核大小
+                dropout=0.2,  # Dropout 比率
+                activation='relu'  # 激活函数
+                ),
+                Flatten(),
+                Dense(int(64 * f))
+            ]
 
         # states_conv是融合imu
         g = 2.0
-        self.states_conv = [Conv1D(int(64 * g), kernel_size=2, strides=1, padding='same',
-                                dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                             LeakyReLU(alpha=1e-2),
-                             Conv1D(int(32 * g), kernel_size=2, strides=1, padding='same', dilation_rate=1),
-                             Flatten(),
-                             Dense(int(64*g))]
-        print(f"states_conv:{self.states_conv}")
+        
+        self.states_conv = [
+                TemporalConvNet(
+                num_inputs=input_size,  # 输入通道数
+                num_hidden_channels=[int(64 * g), int(32 * g), int(32 * g), int(32 * g)],  # 隐藏层通道数
+                kernel_size=2,  # 卷积核大小
+                dropout=0.2,  # Dropout 比率
+                activation='relu'  # 激活函数
+                ),
+                Flatten(),
+                Dense(int(64 * g))
+            ]
 
         self.control_module = [Dense(64*g),
-                               LeakyReLU(alpha=1e-2),
+                               activation,
                                Dense(32*g),
-                               LeakyReLU(alpha=1e-2),
+                               activation,
                                Dense(16*g),
-                               LeakyReLU(alpha=1e-2),
+                               activation,
                                Dense(4)]
 
     def _pointnet_branch(self, single_t_features):
@@ -148,4 +222,3 @@ class AggressiveNet(Network):
             total_embeddings = states_embeddings
         output = self._control_branch(total_embeddings)
         return output
-
