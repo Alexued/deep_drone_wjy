@@ -6,7 +6,7 @@ checkpoint:
   resume_training: False
   resume_file: ""
 train:
-  max_training_epochs: 150
+  max_training_epochs: 100
   max_allowed_error: 0.7
   batch_size: 32
   summary_freq: 400
