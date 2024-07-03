@@ -4,10 +4,10 @@ verbose: True
 seq_len: 1 # History Lenght. When increasing to more than one, the model becomes machine dependent due to data saving latency.
 checkpoint:
   # Put to true and add a path for loading a ckpt
-  resume_training: True
-  resume_file: "ckpt/loop/fts_and_imu/ckpt-7"
+  resume_training: False
+  resume_file: ""
 data_generation:
-  max_rollouts: 5
+  max_rollouts: 60
   train_every_n_rollouts: 30
   double_th_every_n_rollouts: 30
 train:

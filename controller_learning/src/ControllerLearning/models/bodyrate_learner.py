@@ -22,9 +22,9 @@ class BodyrateLearner(object):
         self.config = settings # 读取配置文件，赋值到self.config
         # 检测设备，读取GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
-        print(f"======USE DEVICE: {physical_devices[0].name}======")
-        if len(physical_devices) > 0:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        # print(f"======USE DEVICE: {physical_devices[0].name}======")
+        # if len(physical_devices) > 0:
+            # tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
         self.min_val_loss = tf.Variable(np.inf,
                                         name='min_val_loss',
