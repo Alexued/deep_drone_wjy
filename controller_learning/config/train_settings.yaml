@@ -12,7 +12,7 @@ train:
   summary_freq: 400
   min_number_fts: 40
   train_dir: "data/loop/train"
-  val_dir: "data/loop/val"
+  val_dir: "data/loop/test"
   save_every_n_epochs: 5
   use_imu: True
   use_fts_tracks: True

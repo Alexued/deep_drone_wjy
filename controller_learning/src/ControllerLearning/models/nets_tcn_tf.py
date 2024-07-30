@@ -149,7 +149,7 @@ class AggressiveNet(Network):
                 num_hidden_channels=[int(64 * f), int(32 * f), int(32 * f), int(32 * f)],  # 隐藏层通道数
                 kernel_size=2,  # 卷积核大小
                 dropout=0.2,  # Dropout 比率
-                activation='relu'  # 激活函数
+                activation='LeakyReLU'  # 激活函数
                 ),
                 Flatten(),
                 Dense(int(64 * f))

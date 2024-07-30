@@ -37,9 +37,23 @@ class BodyrateLearner(object):
         # self.network.build((self.config.seq_len, int(64*2)))
         # self.network.summary()
         # print('--------model struct--------')
-
+        # exp1:只改变学习率，从1e-3到5e-4
+        # exp2:只改变batch_size，从32到8
         self.loss = tf.keras.losses.MeanSquaredError() # 定义损失函数为均方差损失函数
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=1e-4, clipvalue=.2)
+        initial_learning_rate = 5e-4
+        first_decay_steps = 1000
+        self.net_cosinedecayrestarts = tf.keras.experimental.CosineDecayRestarts(
+        initial_learning_rate, 
+        first_decay_steps, 
+        t_mul=2.0, 
+        m_mul=1.0, 
+        alpha=0.0, 
+        name=None)
+        print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
+        # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
+        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
+        print(f"now we use lr is base")
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
 
         # 计算给定值的（加权）平均值
         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
@@ -68,7 +82,7 @@ class BodyrateLearner(object):
             predictions = self.network(inputs)
             # print('--------model struct--------')
             self.network.summary()
-            plot_model(self.network, to_file='mdoel_struct.png', show_shapes=True)
+            # plot_model(self.network, to_file='mdoel_struct.png', show_shapes=True)
             # layer = self.network.get_layer(name='temporal_conv_net_1')
             # print(layer.get_config())
             # print('--------model struct--------')
@@ -134,6 +148,7 @@ class BodyrateLearner(object):
                 gradients = self.train_step(features, label)
                 if tf.equal(k % self.config.summary_freq, 0):
                     self.write_train_summaries(features, gradients)
+                    # print("Train Loss: {:.4f}".format(self.train_loss.result()))  # 打印训练损失
                     self.train_loss.reset_states()
             # Eval
             for features, label in tqdm(dataset_val.batched_dataset):
@@ -149,7 +164,7 @@ class BodyrateLearner(object):
             self.global_epoch = self.global_epoch + 1
             self.ckpt.step.assign_add(1)
             print(f"========ues train_dir is {self.config.train_dir}========")
-            print("Epoch: {:2d}, Validation Loss: {:.4f}".format(self.global_epoch, validation_loss))
+            print("Epoch: {:2d}, Validation Loss: {:.4f}, Train Loss: {:.4f}".format(self.global_epoch, validation_loss, self.train_loss.result()))
 
             if validation_loss < self.min_val_loss or ((epoch + 1) % self.config.save_every_n_epochs) == 0:
                 if validation_loss < self.min_val_loss:

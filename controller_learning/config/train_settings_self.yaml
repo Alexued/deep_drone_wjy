@@ -6,13 +6,13 @@ checkpoint:
   resume_training: False
   resume_file: ""
 train:
-  max_training_epochs: 100
+  max_training_epochs: 200
   max_allowed_error: 0.7
-  batch_size: 32
+  batch_size: 8
   summary_freq: 400
   min_number_fts: 40
   train_dir: "data/loop/train"
-  val_dir: "data/loop/val"
+  val_dir: "data/loop/test"
   save_every_n_epochs: 5
   use_imu: True
   use_fts_tracks: True
