@@ -28,18 +28,21 @@ class TrajectoryLearning(TrajectoryBase):
         self.success_subs = rospy.Subscriber("success_reset", Empty,
                                              self.callback_success_reset,
                                              queue_size=1)
+        # 接受vio的数据
         self.state_estimate_sub = rospy.Subscriber("/hummingbird/odometry_converted_vio",
                                                    Odometry,
                                                    self.callback_odometry,
                                                    queue_size=1,
                                                    tcp_nodelay=True)
+        # 接受gt真实数据
         self.ground_truth_odom = rospy.Subscriber("/hummingbird/ground_truth/odometry",
                                                   Odometry,
                                                   self.callback_gt_odometry,
                                                   queue_size=1)
+        # 接受vins估计的imu融合数据
         self.vins_mono_sub = rospy.Subscriber("/vins_estimator/imu_propagate", Odometry,
                                               self.callback_vins_mono, queue_size=1)
-
+        # 如果是iterative迭代模式，就开始写入csv文件
         if mode == "iterative" or self.config.verbose:
             self.write_csv_header()
         if self.mode == "testing":
@@ -78,8 +81,14 @@ class TrajectoryLearning(TrajectoryBase):
         if abs(self.vins_odometry.twist.twist.linear.x) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.y) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.z) < max_allowed_velocity:
+            print(f'vio init is good ,now {self.vins_odometry.twist.twist.linear.x},'
+                  f'{self.vins_odometry.twist.twist.linear.y},'
+                  f'{self.vins_odometry.twist.twist.linear.z}')
             return True
         else:
+            print(f'vio init is bad ,now {self.vins_odometry.twist.twist.linear.x},'
+                  f'{self.vins_odometry.twist.twist.linear.y},'
+                  f'{self.vins_odometry.twist.twist.linear.z}')
             return False
 
     def save_data(self):
@@ -239,6 +248,7 @@ class TrajectoryLearning(TrajectoryBase):
             self.publish_control_command(self.control_command)
 
     def write_csv_header(self):
+        # row是csv文件的第一行，包含GT Position, VIO Estimate, Reference state, MPC output with GT Postion, Net output
         row = ["Rollout_idx",
                "Odometry_stamp",
                # GT Position

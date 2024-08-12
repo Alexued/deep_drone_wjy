@@ -81,7 +81,8 @@ class SafeDataset(BodyDataset):
         self.build_dataset()
 
     def _decode_experiment_dir(self, dir_subpath):
-        print(f"Decoding experiment directory: {dir_subpath}")
+        # 这个函数主要作用是读取数据文件，然后筛选出好的rollouts，并根据真值打上标签，最后将数据加入到features和labels两个列表中
+        print(f"Decoding experiment with directory: {dir_subpath}")
         base_path = os.path.basename(dir_subpath)
         parent_dict = os.path.dirname(dir_subpath)
         data_name = 'data' + base_path[8:] + ".csv"
@@ -173,7 +174,7 @@ class SafeDataset(BodyDataset):
                 if self.config.use_fts_tracks:
                     self.filenames.append(img_fname)
                 self.samples += 1
-                # print(f"Added sample {self.samples} with features {self.features[-1]} and labels {self.labels[-1]}")
+                print(f"Added sample {self.samples} with features {self.features[-1]} and labels {self.labels[-1]}")
 
     def preprocess_fts(self, fts):
         """

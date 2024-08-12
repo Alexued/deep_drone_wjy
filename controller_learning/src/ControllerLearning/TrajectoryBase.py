@@ -22,58 +22,99 @@ TRACK_NUM_NORMALIZE = 10 # Normalization factor for feature length
 
 class TrajectoryBase(object):
     def __init__(self, config, mode):
+        """
+        初始化函数，根据配置和运行模式设置类的参数和状态。
+
+        参数:
+        - config: 配置对象，包含运行时的各种参数和设置。
+        - mode: 运行模式，可以是'training'、'evaluation'或'inference'。
+
+        返回:
+        无返回值，但根据mode参数的不同，可能会提前返回。
+        """
+        # 初始化配置和里程计对象
         self.config = config
         self.odometry = Odometry()
         self.gt_odometry = Odometry()
+        
+        # 初始化缓冲区和参考状态
         self.rows_buffer = []
         self.ref_state = TrajectoryPoint()
+        
+        # 初始化VINs里程计和控制命令
         self.vins_odometry = None
         self.gt_control_command = ControlCommand()
+        
+        # 初始化计数器和特征图像
         self.counter = 0
         self.features = None
         self.image = None
         self.images_input = None
+        
+        # 初始化操作完成和节点关闭标志
         self.maneuver_complete = False
         self.shutdown_node = False
+        
+        # 初始化数据记录和训练状态
         self.record_data = False
         self.is_training = False
+        
+        # 初始化网络使用和状态
         self.use_network = False
         self.net_initialized = False
         self.reference_updated = False
+        
+        # 初始化滚动索引和网络、专家调用次数
         self.rollout_idx = 0
-        self.n_times_net = 0.001 # Due to cope against weird gazebo behaviour
+        self.n_times_net = 0.001 # 为了应对奇怪的Gazebo行为
         self.n_times_expert = 0
+        
+        # 设置运行模式
         self.mode = mode
+        
+        # 初始化特征和状态队列
         self.fts_queue = collections.deque([], maxlen=self.config.seq_len)
         self.state_queue = collections.deque([], maxlen=self.config.seq_len)
         self.reset_queue()
+        
+        # 根据配置初始化学习器
         self.learner = BodyrateLearner(settings=config)
+        
+        # 如果是训练模式，提前返回，没有更多的初始化工作
         if self.mode == 'training':
-            return  # Nothing to initialize
+            return
+        # 发布控制指令，主要是油门
         self.pub_actions = rospy.Publisher("/" + self.config.quad_name + "/control_command",
                                            ControlCommand, queue_size=1)
+        # 订阅里程计和旋转信息
         self.odometry_sub = rospy.Subscriber("/" + self.config.quad_name + "/state_estimate",
                                              Odometry,
                                              self.callback_odometry,
                                              queue_size=1,
                                              tcp_nodelay=True)
+        # 是否关闭节点
         self.shutdown_sub = rospy.Subscriber("shutdown_learner", Empty,
                                              self.callback_shutdown,
                                              queue_size=1)
+        # 订阅VINS输出的参考状态估计
         self.ref_sub = rospy.Subscriber("/" + self.config.quad_name + "/vio_reference",
                                         TrajectoryPoint,
                                         self.callback_ref,
                                         queue_size=1,
                                         tcp_nodelay=True)
+        # 订阅控制命令
         self.control_command_sub = rospy.Subscriber("/" + self.config.quad_name + "/control_command_label",
                                                     ControlCommand,
                                                     self.callback_control_command, queue_size=1,
                                                     tcp_nodelay=True)
+        # 如果使用特征跟踪器，订阅特征跟踪器的特征
         if self.config.use_fts_tracks or self.mode == 'iterative':
             self.fts_sub = rospy.Subscriber("/feature_tracker/feature", PointCloud,
                                             self.callback_fts, queue_size=1)
+        # 订阅是否开始为网络生成输入
         self.traj_done_sub = rospy.Subscriber("/" + self.config.quad_name + "/switch_to_network", Bool,
                                               self.callback_nw_switch, queue_size=1)
+        # 订阅是否开始轨迹
         self.trajectory_start = rospy.Subscriber("/" + self.config.quad_name + "/trajectory_computation_finish", Bool,
                                                  self.callback_start_trajectory, queue_size=10)
         if self.mode == "testing":
@@ -112,6 +153,7 @@ class TrajectoryBase(object):
         self.pub_actions.publish(control_command)
 
     def preprocess_fts(self, data):
+        # data是特征点提取的特征点数据，包含特征点的位置、速度、轨迹计数等信息
         features_dict = {}
         for i in range(len(data.points)):
             ft_id = data.channels[0].values[i]
@@ -122,7 +164,9 @@ class TrajectoryBase(object):
             velocity_y = data.channels[4].values[i]
             track_count = 2 * (data.channels[5].values[i] / TRACK_NUM_NORMALIZE) - 1
             assert z == 1
+            # 这里的feat是一个长度为5的列表，包含了特征点的位置、速度和圈数
             feat = np.array([x, y, velocity_x, velocity_y, track_count])
+            # 根据时间来插入特征点
             features_dict[ft_id] = feat
         return features_dict
 
@@ -187,7 +231,9 @@ class TrajectoryBase(object):
         return self.maneuver_complete
 
     def callback_odometry(self, data):
+        # 提取里程计数据
         self.odometry = data
+        # 提取里程计的旋转矩阵并展平成一维数组，最后的odom_rot是一个长度为9的列表
         self.odom_rot = R.from_quat([self.odometry.pose.pose.orientation.x,
                                      self.odometry.pose.pose.orientation.y,
                                      self.odometry.pose.pose.orientation.z,
@@ -197,6 +243,7 @@ class TrajectoryBase(object):
         self.gt_odometry = data
 
     def callback_ref(self, data):
+        # 订阅VINS输出的参考状态估计
         self.ref_state = data
         self.ref_rot = R.from_quat([self.ref_state.pose.orientation.x,
                                     self.ref_state.pose.orientation.y,

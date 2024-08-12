@@ -21,10 +21,10 @@ class BodyrateLearner(object):
     def __init__(self, settings):
         self.config = settings # 读取配置文件，赋值到self.config
         # 检测设备，读取GPU
-        physical_devices = tf.config.experimental.list_physical_devices('GPU')
-        print(f"======USE DEVICE: {physical_devices[0].name}======")
-        if len(physical_devices) > 0:
-            tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        # physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        # print(f"======USE DEVICE: {physical_devices[0].name}======")
+        # if len(physical_devices) > 0:
+            # tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
         self.min_val_loss = tf.Variable(np.inf,
                                         name='min_val_loss',
@@ -49,10 +49,11 @@ class BodyrateLearner(object):
         m_mul=1.0, 
         alpha=0.0, 
         name=None)
-        print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
+
+        # print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
         self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
-        print(f"now we use lr is base")
+        # print(f"now we use lr is base")
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
 
         # 计算给定值的（加权）平均值
@@ -81,7 +82,7 @@ class BodyrateLearner(object):
         with tf.GradientTape() as tape:
             predictions = self.network(inputs)
             # print('--------model struct--------')
-            self.network.summary()
+            # self.network.summary()
             # plot_model(self.network, to_file='mdoel_struct.png', show_shapes=True)
             # layer = self.network.get_layer(name='temporal_conv_net_1')
             # print(layer.get_config())
@@ -120,10 +121,10 @@ class BodyrateLearner(object):
     def train(self):
         print("Training Network")
         if not hasattr(self, 'train_log_dir'):
-            print('======hasattr is called======')
+            # print('======hasattr is called======')
             # This should be done only once
             self.train_log_dir = os.path.join(self.config.log_dir, 'train')
-            print(f'self.train_log_dir: {self.train_log_dir}')
+            # print(f'self.train_log_dir: {self.train_log_dir}')
             self.summary_writer = tf.summary.create_file_writer(self.train_log_dir)
             self.ckpt_manager = tf.train.CheckpointManager(self.ckpt, self.train_log_dir, max_to_keep=10)
         else:
@@ -133,11 +134,11 @@ class BodyrateLearner(object):
             self.train_loss.reset_states()
             self.val_loss.reset_states()
 
-        print(f"config.train_dir: {self.config.train_dir}")
+        # print(f"config.train_dir: {self.config.train_dir}")
         dataset_train = create_dataset(self.config.train_dir,
                                        self.config, training=True)
         print(f'======dataset_train is set, next set dataset_val========')
-        print(f"config.val_dir: {self.config.val_dir}")
+        # print(f"config.val_dir: {self.config.val_dir}")
         dataset_val = create_dataset(self.config.val_dir,
                                      self.config, training=False)
 
@@ -148,7 +149,6 @@ class BodyrateLearner(object):
                 gradients = self.train_step(features, label)
                 if tf.equal(k % self.config.summary_freq, 0):
                     self.write_train_summaries(features, gradients)
-                    # print("Train Loss: {:.4f}".format(self.train_loss.result()))  # 打印训练损失
                     self.train_loss.reset_states()
             # Eval
             for features, label in tqdm(dataset_val.batched_dataset):
@@ -156,14 +156,12 @@ class BodyrateLearner(object):
                 self.val_step(features, label)
             validation_loss = self.val_loss.result()
             with self.summary_writer.as_default():
-                # tf.summary.trace_on(graph=True, profiler=True)
                 tf.summary.scalar("Validation Loss", validation_loss, step=tf.cast(self.global_epoch, dtype=tf.int64))
-            # tf.summary.trace_off()
             self.val_loss.reset_states()
 
             self.global_epoch = self.global_epoch + 1
             self.ckpt.step.assign_add(1)
-            print(f"========ues train_dir is {self.config.train_dir}========")
+            # print(f"========ues train_dir is {self.config.train_dir}========")
             print("Epoch: {:2d}, Validation Loss: {:.4f}, Train Loss: {:.4f}".format(self.global_epoch, validation_loss, self.train_loss.result()))
 
             if validation_loss < self.min_val_loss or ((epoch + 1) % self.config.save_every_n_epochs) == 0:

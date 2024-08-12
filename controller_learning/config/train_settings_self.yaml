@@ -1,12 +1,12 @@
 log_dir: 'results/train_fma_cork_seq_1_fts_tracks_newcam_new_end'
 quad_name: 'hummingbird'
-seq_len: 8 # History Lenght. When increasing to more than one, the model becomes machine dependent due to data saving latency.
+seq_len: 5 # History Lenght. When increasing to more than one, the model becomes machine dependent due to data saving latency.
 checkpoint:
   # Put to true and add a path for loading a ckpt
   # resume_training: False
   # resume_file: ""
-  resume_training: True
-  resume_file: "results/train_fma_cork_seq_1_fts_tracks_newcam_new_end/20240731-081203/train/ckpt-36"
+  resume_training: false
+  resume_file: "results/train_fma_cork_seq_1_fts_tracks_newcam_new_end/20240806-225258/train/ckpt-43"
 train:
   max_training_epochs: 200
   max_allowed_error: 0.7

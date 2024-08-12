@@ -72,6 +72,7 @@ def random_replace():
 
 
 def initialize_vio():
+    print('===Start initialize vio====')
     # Make sure to use GT odometry in this step
     os.system("timeout 1s rostopic pub /hummingbird/autopilot/off std_msgs/Empty")
     os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")

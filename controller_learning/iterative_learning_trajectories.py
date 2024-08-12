@@ -33,9 +33,17 @@ class Trainer():
         # if True, we will still use the VIO-orientation, even when initialization is poor.
         # If set to False, we will fall back to GT.
         # Set to True only if you are sure your VIO is well calibrated.
-        use_chimaera = False
+        # use_chimaera = False
+        use_chimaera = True
         # check if initialization was good. If not, we will perform rollout with ground truth to not waste time!
         vio_init_good = learner.vio_init_good
+        # while not vio_init_good:
+        #     print(f"===Start check vio is init good ,now vio_init_good is {vio_init_good}===")
+        #     vio_init_good = learner.vio_init_good
+        #     time.sleep(0.5)
+        print(f"===End check vio is init good ,now vio_init_good is {vio_init_good}===")
+        # rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
+        # os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")
         if vio_init_good:
             rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
             os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")
