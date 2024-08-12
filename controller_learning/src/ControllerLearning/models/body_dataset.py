@@ -174,7 +174,7 @@ class SafeDataset(BodyDataset):
                 if self.config.use_fts_tracks:
                     self.filenames.append(img_fname)
                 self.samples += 1
-                print(f"Added sample {self.samples} with features {self.features[-1]} and labels {self.labels[-1]}")
+                # print(f"Added sample {self.samples} with features {self.features[-1]} and labels {self.labels[-1]}")
 
     def preprocess_fts(self, fts):
         """

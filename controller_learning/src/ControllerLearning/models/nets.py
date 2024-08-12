@@ -143,7 +143,7 @@ class AggressiveNet(Network):
 
             # fts_mergenet是特征轨迹
             input_size = (self.config.seq_len, int(64*f))
-            activation = LeakyReLU(alpha=1e-2)
+            activation = dict_activation['GELU']
             # 将 TCN 架构与其他必要层整合到列表中
             self.fts_mergenet = [
                 TemporalConvNet(
