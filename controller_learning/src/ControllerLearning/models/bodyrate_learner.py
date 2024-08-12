@@ -54,7 +54,7 @@ class BodyrateLearner(object):
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
         self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
         # print(f"now we use lr is base")
-        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
+        self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['cosinedecayrestarts'], clipvalue=.2)
 
         # 计算给定值的（加权）平均值
         self.train_loss = tf.keras.metrics.Mean(name='train_loss')
