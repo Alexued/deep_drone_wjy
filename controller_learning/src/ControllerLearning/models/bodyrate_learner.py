@@ -20,7 +20,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = "2"
 class BodyrateLearner(object):
     def __init__(self, settings):
         self.config = settings # 读取配置文件，赋值到self.config
-        # 检测设备，读取GPU
+        # 检测设备，读取GPU,在laptop上没用，台式机上有用
         # physical_devices = tf.config.experimental.list_physical_devices('GPU')
         # print(f"======USE DEVICE: {physical_devices[0].name}======")
         # if len(physical_devices) > 0:
