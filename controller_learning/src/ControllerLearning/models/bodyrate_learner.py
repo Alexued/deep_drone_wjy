@@ -21,10 +21,10 @@ class BodyrateLearner(object):
     def __init__(self, settings):
         self.config = settings # 读取配置文件，赋值到self.config
         # 检测设备，读取GPU
-        # physical_devices = tf.config.experimental.list_physical_devices('GPU')
+        physical_devices = tf.config.experimental.list_physical_devices('GPU')
         # print(f"======USE DEVICE: {physical_devices[0].name}======")
-        # if len(physical_devices) > 0:
-            # tf.config.experimental.set_memory_growth(physical_devices[0], True)
+        if len(physical_devices) > 0:
+            tf.config.experimental.set_memory_growth(physical_devices[0], True)
 
         self.min_val_loss = tf.Variable(np.inf,
                                         name='min_val_loss',
@@ -119,6 +119,8 @@ class BodyrateLearner(object):
         tf.summary.trace_off()
 
     def train(self):
+        # 使tf.function立即执行, 防止bug
+        tf.config.experimental_run_functions_eagerly(True)
         print("Training Network")
         if not hasattr(self, 'train_log_dir'):
             # print('======hasattr is called======')

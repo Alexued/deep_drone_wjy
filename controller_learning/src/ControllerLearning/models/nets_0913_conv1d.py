@@ -214,21 +214,79 @@ class AggressiveNet(Network):
             x = f(x)
         return x
 
+    # def _control_branch(self, embeddings):
+    #     # 调整 embeddings 的形状，确保它是 (batch_size, 1, 256)
+    #     x = tf.reshape(embeddings, (-1, 1, 256))
+        # x = embeddings
+        # print(f'control_branch input shape: {x.shape}')
+        
+        # input_shape = (32, 1, 256)  # (batch_size, sequence_length, channels)
+
+        # # 定义输入层
+        # inputs = tf.keras.Input(shape=(1, 256))
+
+        # # 第一层卷积，输出通道数为128
+        # x = tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same', activation='relu')(inputs)
+
+        # # 第二层卷积，输出通道数为64
+        # x = tf.keras.layers.Conv1D(filters=64, kernel_size=3, padding='same', activation='relu')(x)
+
+        # # 第三层卷积，输出通道数为32
+        # x = tf.keras.layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu')(x)
+
+        # # 第四层卷积，输出通道数为4
+        # x = tf.keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu')(x)
+
+        # # 创建模型
+        # model = tf.keras.Model(inputs=inputs, outputs=x)
+
+        # # 打印模型的结构
+        # model.summary()
+
+        # x = model(x)
+
+        # # 确保输入形状为 (batch_size, 256)
+        # if len(x.shape) == 3 and x.shape[1] == 1:
+        #     # 如果输入形状为 (32, 1, 256)，则先展开成 (32, 256)
+        #     x = tf.squeeze(x, axis=1)
+        
+        # # 确保输入形状为 (batch_size, 256)
+        # assert len(x.shape) == 2 and x.shape[1] == 256, \
+        #     f"Expected shape (batch_size, 256), got {x.shape}"
+        
+        # # 将输入扩展为 (batch_size, seq_len, features)
+        # x = tf.tile(tf.expand_dims(x, axis=1), [1, 1, 1])
+        
+        # print(f'Reshaped input shape: {x.shape}')
+        
+        # # 确保此时的形状为 (batch_size, seq_len, features)
+        # assert len(x.shape) == 3 and x.shape[1] == 1 and x.shape[2] == 256, \
+        #     f"Expected shape (batch_size, seq_len, features), got {x.shape}"
+        
+        # 通过 Conv1D 层
+        # for i, f in enumerate(self.control_module):
+        #     print(f'Input shape before layer {i}: {x.shape}')
+        #     print('after layer:', f)
+        #     x = f(x)
+        #     print(f'Output shape after layer {i}: {x.shape}')
+        #     # print(f'Layer {i}: {f}')
+        
+        # return x
+
     def _control_branch(self, embeddings):
         # 调整 embeddings 的形状，确保它是 (batch_size, 1, 256)
         x = tf.reshape(embeddings, (-1, 1, 256))
-        # print(f'control_branch input shape: {x.shape}')
+        print(f'control_branch input shape: {x.shape}')
         
-        activation = LeakyReLU(alpha=1e-2)
-
         # 创建卷积层模型
         inputs = tf.keras.Input(shape=(1, 256))
-        x = tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=activation)(inputs)
-        x = tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation=activation)(x)
-        x = tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation=activation)(x)
-        x = tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation=activation)(x)
+        x = tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation='relu')(inputs)
+        x = tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation='relu')(x)
+        x = tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation='relu')(x)
+        x = tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation='relu')(x)
 
         model = tf.keras.Model(inputs=inputs, outputs=x)
+        # model.summary()
 
         # 应用模型
         output = model(embeddings)  # 确保此时的输入 shape 正确
@@ -243,16 +301,25 @@ class AggressiveNet(Network):
             fts_stack = tf.transpose(fts_stack, (1,0,2,3)) # (seq_len, batch_size, min_numb_features, 5)
             # Execute PointNet Part
             fts_embeddings = self._features_branch(fts_stack)
-            # print(f'=====fts_embeddings shape: {fts_embeddings.shape}=====')
+            print(f'=====fts_embeddings shape: {fts_embeddings.shape}=====')
         states_embeddings = self._states_branch(states)
-        # print(f'=====states_embeddings shape: {states_embeddings.shape}=====')
+        print(f'=====states_embeddings shape: {states_embeddings.shape}=====')
         if self.config.use_fts_tracks:
             total_embeddings = tf.concat((fts_embeddings, states_embeddings), axis=1)
         else:
             total_embeddings = states_embeddings
-        # print(f'=====total_embeddings shape: {total_embeddings.shape}=====')
+        print(f'=====total_embeddings shape: {total_embeddings.shape}=====')
         
         # 将 total_embeddings 形状从 (batch_size, 256) 转换为 (batch_size, 3, 256)
+        # total_embeddings = tf.tile(tf.expand_dims(total_embeddings, axis=1), [1, self.config.seq_len, 1])
+        # print(f'=====total_embeddings after expand_dims shape: {total_embeddings.shape}=====')
         total_embeddings = tf.expand_dims(total_embeddings, axis=1)
         output = self._control_branch(total_embeddings)
         return output
+        # for i, f in enumerate(self.control_module):
+        #     print(f'Input shape before layer {i}: {total_embeddings.shape}')
+        #     total_embeddings = f(total_embeddings)
+        #     print('after layer:', f)
+        #     print(f'Output shape after layer {i}: {total_embeddings.shape}')
+
+        # return total_embeddings

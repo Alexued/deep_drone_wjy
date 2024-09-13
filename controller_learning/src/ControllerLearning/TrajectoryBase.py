@@ -243,7 +243,7 @@ class TrajectoryBase(object):
         self.gt_odometry = data
 
     def callback_ref(self, data):
-        # 订阅VINS输出的参考状态估计
+        # 输出的vio参考状态估计
         self.ref_state = data
         self.ref_rot = R.from_quat([self.ref_state.pose.orientation.x,
                                     self.ref_state.pose.orientation.y,

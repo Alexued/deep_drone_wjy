@@ -117,12 +117,14 @@ class AggressiveNet(Network):
         GELU =  tf.keras.layers.Activation('gelu')
         LReLU = LeakyReLU(alpha=1e-2)
         dict_activation = {"ReLU": ReLU(), "GELU": GELU, "LeakyReLU": LReLU}
-        activation = dict_activation['LeakyReLU']
+        # activation = dict_activation['LeakyReLU']
+        activation = LeakyReLU(alpha=1e-2)
         if self.config.use_fts_tracks:
             f = 2.0
             # dilation_rate=1时采用普通卷积，dilation_rate=2时采用空洞卷积。
             # use_bias 配置该层的神经网络是否使用偏置向量
             # pointnet是处理图像中特征点的神经网络
+            print(f"pointnet use LeakyReLU(alpha=1e-2)")
             self.pointnet = [Conv2D(int(16 * f), kernel_size=1, strides=1, padding='valid',
                                     dilation_rate=1, use_bias=has_bias, input_shape=input_size),
                              InstanceNormalization(axis=3, epsilon=1e-5, center=learn_affine, scale=learn_affine),
@@ -141,7 +143,7 @@ class AggressiveNet(Network):
 
             # fts_mergenet是特征轨迹
             input_size = (self.config.seq_len, int(64*f))
-
+            activation = dict_activation['GELU']
             # 将 TCN 架构与其他必要层整合到列表中
             self.fts_mergenet = [
                 TemporalConvNet(
@@ -149,7 +151,7 @@ class AggressiveNet(Network):
                 num_hidden_channels=[int(64 * f), int(32 * f), int(32 * f), int(32 * f)],  # 隐藏层通道数
                 kernel_size=2,  # 卷积核大小
                 dropout=0.2,  # Dropout 比率
-                activation='LeakyReLU'  # 激活函数
+                activation=activation  # 激活函数
                 ),
                 Flatten(),
                 Dense(int(64 * f))
@@ -164,19 +166,31 @@ class AggressiveNet(Network):
                 num_hidden_channels=[int(64 * g), int(32 * g), int(32 * g), int(32 * g)],  # 隐藏层通道数
                 kernel_size=2,  # 卷积核大小
                 dropout=0.2,  # Dropout 比率
-                activation='relu'  # 激活函数
+                activation=activation  # 激活函数
                 ),
                 Flatten(),
                 Dense(int(64 * g))
             ]
 
-        self.control_module = [Dense(64*g),
-                               activation,
-                               Dense(32*g),
-                               activation,
-                               Dense(16*g),
-                               activation,
-                               Dense(4)]
+        # # 这是MLP网络
+        # self.control_module = [Dense(64*g),
+        #                        activation,
+        #                        Dense(32*g),
+        #                        activation,
+        #                        Dense(16*g),
+        #                        activation,
+        #                        Dense(4)]
+
+        # 这里换成一维卷积
+        self.control_module = [
+            Conv1D(filters=128, kernel_size=3, padding='same'),  # 对应 Dense(128)
+            activation,  # 激活函数
+            Conv1D(filters=64, kernel_size=3, padding='same'),   # 对应 Dense(64)
+            activation,  # 激活函数
+            Conv1D(filters=32, kernel_size=3, padding='same'),   # 对应 Dense(32)
+            activation,  # 激活函数
+            Conv1D(filters=4, kernel_size=3, padding='same')     # 对应 Dense(4)
+        ]
 
     def _pointnet_branch(self, single_t_features):
         x = tf.expand_dims(single_t_features, axis=1)

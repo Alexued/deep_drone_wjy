@@ -81,12 +81,12 @@ class TrajectoryLearning(TrajectoryBase):
         if abs(self.vins_odometry.twist.twist.linear.x) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.y) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.z) < max_allowed_velocity:
-            print(f'vio init is good ,now {self.vins_odometry.twist.twist.linear.x},'
+            rospy.loginfo(f'VIO init is GOOD ,now {self.vins_odometry.twist.twist.linear.x},'
                   f'{self.vins_odometry.twist.twist.linear.y},'
                   f'{self.vins_odometry.twist.twist.linear.z}')
             return True
         else:
-            print(f'vio init is bad ,now {self.vins_odometry.twist.twist.linear.x},'
+            rospy.logwarn(f'VIO init is BAD ,now {self.vins_odometry.twist.twist.linear.x},'
                   f'{self.vins_odometry.twist.twist.linear.y},'
                   f'{self.vins_odometry.twist.twist.linear.z}')
             return False

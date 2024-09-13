@@ -9,7 +9,7 @@ throw_params:
   pos_range: 5
 checkpoint:
   resume_training: True
-  resume_file: "results/train_fma_cork_seq_1_fts_tracks_newcam_new_end/20240620-150939/train/ckpt-29"
+  resume_file: "ckpt/loop/fts_and_imu/ckpt-7"
 test_time:
   max_rollouts: 5
   min_number_fts: 40

@@ -37,13 +37,16 @@ class Trainer():
         use_chimaera = True
         # check if initialization was good. If not, we will perform rollout with ground truth to not waste time!
         vio_init_good = learner.vio_init_good
-        # while not vio_init_good:
-        #     print(f"===Start check vio is init good ,now vio_init_good is {vio_init_good}===")
-        #     vio_init_good = learner.vio_init_good
-        #     time.sleep(0.5)
-        print(f"===End check vio is init good ,now vio_init_good is {vio_init_good}===")
-        # rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
-        # os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")
+        # 直到vio_init_good为True，才会继续执行
+        check_count = 0
+        while not learner.vio_init_good and not rospy.is_shutdown():
+            rospy.logwarn("VIOS initialization is not good, waiting for it to be good!")
+            check_count += 1
+            if check_count > 10:
+                rospy.logerr("VIO initialization is bad!")
+                break
+            rospy.sleep(0.5)
+        
         if vio_init_good:
             rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
             os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")

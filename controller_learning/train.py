@@ -13,6 +13,7 @@ from config.settings import create_settings
 
 
 def main():
+    
     parser = argparse.ArgumentParser(description='Train Network')
     parser.add_argument('--settings_file', help='Path to settings yaml', required=True)
 
