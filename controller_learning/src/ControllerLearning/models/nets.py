@@ -216,7 +216,8 @@ class AggressiveNet(Network):
 
     def _control_branch(self, embeddings):
         # 调整 embeddings 的形状，确保它是 (batch_size, 1, 256)
-        x = tf.reshape(embeddings, (-1, 1, 256))
+        # x = tf.reshape(embeddings, (-1, 1, 256)) # (batch_size, 1, 256)
+        x = embeddings
         # print(f'control_branch input shape: {x.shape}')
         
         activation = LeakyReLU(alpha=1e-2)
@@ -242,17 +243,18 @@ class AggressiveNet(Network):
             fts_stack = inputs['fts']  # (batch_size, seq_len, min_numb_features, 5)
             fts_stack = tf.transpose(fts_stack, (1,0,2,3)) # (seq_len, batch_size, min_numb_features, 5)
             # Execute PointNet Part
-            fts_embeddings = self._features_branch(fts_stack)
+            fts_embeddings = self._features_branch(fts_stack) # (32, 128)
             # print(f'=====fts_embeddings shape: {fts_embeddings.shape}=====')
-        states_embeddings = self._states_branch(states)
+        states_embeddings = self._states_branch(states) # (32, 128)
         # print(f'=====states_embeddings shape: {states_embeddings.shape}=====')
         if self.config.use_fts_tracks:
-            total_embeddings = tf.concat((fts_embeddings, states_embeddings), axis=1)
+            total_embeddings = tf.concat((fts_embeddings, states_embeddings), axis=1) #(32, 256)
         else:
             total_embeddings = states_embeddings
         # print(f'=====total_embeddings shape: {total_embeddings.shape}=====')
         
-        # 将 total_embeddings 形状从 (batch_size, 256) 转换为 (batch_size, 3, 256)
+        # 将 total_embeddings 形状从 (batch_size, 256) 转换为 (batch_size, 1, 256)
         total_embeddings = tf.expand_dims(total_embeddings, axis=1)
+        # print(f'total_embeddings shape: {total_embeddings.shape}')
         output = self._control_branch(total_embeddings)
         return output
