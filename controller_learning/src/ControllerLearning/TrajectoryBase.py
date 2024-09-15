@@ -193,10 +193,12 @@ class TrajectoryBase(object):
     def callback_fts(self, data):
         if (not self.config.use_fts_tracks) and (self.mode == 'testing'):
             return
+        # 筛选出特征点
         features = self.preprocess_fts(data)
         if len(features.keys()) != 0:
             # Update features only if something is available
             self.features = features
+            # 如果筛选的特征点与配置文件中要求的特征点数量不同，少了就复制，多了就随机删除
             preprocessed_fts = self.add_missing_fts(self.features)
             self.fts_queue.append(preprocessed_fts)
             self.features_input = np.stack([np.stack([v for v in self.fts_queue[j].values()]) \
