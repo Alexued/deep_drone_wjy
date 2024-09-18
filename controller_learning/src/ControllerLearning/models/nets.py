@@ -186,10 +186,10 @@ class AggressiveNet(Network):
         # input_shape = (self.config.batch_size, self.config.seq_len, 256)
         inputs = tf.keras.Input(shape=(1, 256))
         self.control_module = [
-            tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation='relu')(inputs),
-            tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation='relu'),
-            tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation='relu'),
-            tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation='relu')
+            tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same', activation='relu')(inputs),
+            tf.keras.layers.Conv1D(filters=64, kernel_size=3, padding='same', activation='relu'),
+            tf.keras.layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'),
+            tf.keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu')
         ]
 
     def _pointnet_branch(self, single_t_features):
