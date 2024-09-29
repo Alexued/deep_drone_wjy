@@ -120,7 +120,7 @@ class BodyrateLearner(object):
 
     def train(self):
         # 使tf.function立即执行, 防止bug
-        tf.config.experimental_run_functions_eagerly(True)
+        # tf.config.experimental_run_functions_eagerly(True)
         print("Training Network")
         if not hasattr(self, 'train_log_dir'):
             # print('======hasattr is called======')

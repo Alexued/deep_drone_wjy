@@ -11,6 +11,7 @@ from std_msgs.msg import Bool
 from common import update_mpc_params, setup_sim, random_replace, initialize_vio
 
 from config.settings import create_settings
+import tensorflow as tf
 
 
 class Trainer():
@@ -157,6 +158,9 @@ class Trainer():
 
 
 def main():
+    # 使tf.function立即执行, 防止bug; 0928更新：好像是调试用的
+    # tf.config.experimental_run_functions_eagerly(True)
+
     parser = argparse.ArgumentParser(description='Train RAF network.')
     parser.add_argument('--settings_file', help='Path to settings yaml', required=True)
 

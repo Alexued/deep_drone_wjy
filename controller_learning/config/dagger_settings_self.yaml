@@ -1,11 +1,11 @@
 log_dir: "results/loop"
 quad_name: "hummingbird"
 verbose: True
-seq_len: 3 # History Lenght. When increasing to more than one, the model becomes machine dependent due to data saving latency.
+seq_len: 1 # History Lenght. When increasing to more than one, the model becomes machine dependent due to data saving latency.
 checkpoint:
   # Put to true and add a path for loading a ckpt
   # resume_training: True
-  # resume_file: "results/loop/20240624-000258/train/ckpt-65"
+  # resume_file: "/home/wjy/drone_acrobatics_ws/catkin_dda/src/deep_drone_acrobatics/controller_learning/ckpt/loop/fts_and_imu/ckpt-7"
   resume_training: False
   resume_file: ""
 data_generation:

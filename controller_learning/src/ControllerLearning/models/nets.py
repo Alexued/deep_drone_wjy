@@ -172,24 +172,24 @@ class AggressiveNet(Network):
                 Dense(int(64 * g))
             ]
 
-        # # 这是MLP网络
-        # self.control_module = [Dense(64*g),
-        #                        activation,
-        #                        Dense(32*g),
-        #                        activation,
-        #                        Dense(16*g),
-        #                        activation,
-        #                        Dense(4)]
+        # 这是MLP网络
+        self.control_module = [Dense(64*g),
+                               activation,
+                               Dense(32*g),
+                               activation,
+                               Dense(16*g),
+                               activation,
+                               Dense(4)]
 
-        # 这里换成一维卷积
+        # # 这里换成一维卷积
         activation = LeakyReLU(alpha=1e-2)
-        # input_shape = (self.config.batch_size, self.config.seq_len, 256)
-        inputs = tf.keras.Input(shape=(1, 256))
-        self.control_module = [
-            tf.keras.layers.Conv1D(filters=128, kernel_size=3, padding='same', activation='relu')(inputs),
-            tf.keras.layers.Conv1D(filters=64, kernel_size=3, padding='same', activation='relu'),
-            tf.keras.layers.Conv1D(filters=32, kernel_size=3, padding='same', activation='relu'),
-            tf.keras.layers.Conv1D(filters=4, kernel_size=3, padding='same', activation='relu')
+        # # input_shape = (self.config.batch_size, self.config.seq_len, 256)
+        # inputs = tf.keras.Input(shape=(1, 256))
+        self.conv1d_control_module = [
+            tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=activation),
+            tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation=activation),
+            tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation=activation),
+            tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation=activation)
         ]
 
     def _pointnet_branch(self, single_t_features):
@@ -215,25 +215,37 @@ class AggressiveNet(Network):
         return x
 
     def _control_branch(self, embeddings):
-        # 调整 embeddings 的形状，确保它是 (batch_size, 1, 256)
-        # x = tf.reshape(embeddings, (-1, 1, 256)) # (batch_size, 1, 256)
-        x = embeddings
-        # print(f'control_branch input shape: {x.shape}')
-        
-        activation = LeakyReLU(alpha=1e-2)
+        mode = 'conv1d'
+        if mode == 'conv1d':
+            embeddings = tf.expand_dims(embeddings, axis=1)
+            # 调整 embeddings 的形状，确保它是 (batch_size, 1, 256)
+            # x = tf.reshape(embeddings, (-1, 1, 256)) # (batch_size, 1, 256)
+            x = embeddings
+            # print(f'control_branch input shape: {x.shape}')
+            
+            # activation = LeakyReLU(alpha=1e-2)
 
-        # 创建卷积层模型
-        inputs = tf.keras.Input(shape=(1, 256))
-        x = tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=activation)(inputs)
-        x = tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation=activation)(x)
-        x = tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation=activation)(x)
-        x = tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation=activation)(x)
+            # # 创建卷积层模型
+            # inputs = tf.keras.Input(shape=(1, 256))
+            # x = tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=activation)(inputs)
+            # x = tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation=activation)(x)
+            # x = tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='same', activation=activation)(x)
+            # x = tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='same', activation=activation)(x)
 
-        model = tf.keras.Model(inputs=inputs, outputs=x)
+            # model = tf.keras.Model(inputs=inputs, outputs=x)
 
-        # 应用模型
-        output = model(embeddings)  # 确保此时的输入 shape 正确
-        return output
+            # # 应用模型
+            # output = model(embeddings)  # 确保此时的输入 shape 正确
+            # output = tf.squeeze(output, axis=1)
+            for f in self.conv1d_control_module:
+                x = f(x)
+            x = tf.squeeze(x, axis=1)
+            return x
+        elif mode == 'dense':
+            x = embeddings
+            for f in self.control_module:
+                x = f(x)
+            return x
 
     def _internal_call(self, inputs):
         # 这里是融合的地方
@@ -254,7 +266,8 @@ class AggressiveNet(Network):
         # print(f'=====total_embeddings shape: {total_embeddings.shape}=====')
         
         # 将 total_embeddings 形状从 (batch_size, 256) 转换为 (batch_size, 1, 256)
-        total_embeddings = tf.expand_dims(total_embeddings, axis=1)
+        # total_embeddings = tf.expand_dims(total_embeddings, axis=1)
         # print(f'total_embeddings shape: {total_embeddings.shape}')
         output = self._control_branch(total_embeddings)
+        # print(f'======================output shape: {output.shape}======================')
         return output
