@@ -105,10 +105,14 @@ class Trainer():
             print("Expert used {:.03f}% of the times".format(100.0 * expert_usage))
             print("Mean Tracking Error is {:.03f}".format(tracking_error))
             print("Median Tracking Error is {:.03f}".format(median_traj_error))
-            if learner.rollout_idx % train_every_n_rollouts == 0:
-                os.system("rosservice call /gazebo/pause_physics")
-                learner.train()
-                os.system("rosservice call /gazebo/unpause_physics")
+            use_train = True
+            if use_train:
+                if learner.rollout_idx % train_every_n_rollouts == 0:
+                    os.system("rosservice call /gazebo/pause_physics")
+                    learner.train()
+                    os.system("rosservice call /gazebo/unpause_physics")
+            else:
+                print("Not training network")
             if (learner.rollout_idx % self.settings.double_th_every_n_rollouts) == 0:
                 self.settings.fallback_threshold_rates += 0.5
                 print("Setting Rate Threshold to {}".format(self.settings.fallback_threshold_rates))

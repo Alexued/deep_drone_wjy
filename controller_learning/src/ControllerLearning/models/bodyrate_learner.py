@@ -31,12 +31,14 @@ class BodyrateLearner(object):
                                         trainable=False)
 
         self.network = create_network(self.config)
+
         # print struct of model
         # states_conv_model = self.network.states_conv
         # print('--------model struct--------')
         # self.network.build((self.config.seq_len, int(64*2)))
         # self.network.summary()
         # print('--------model struct--------')
+
         # exp1:只改变学习率，从1e-3到5e-4
         # exp2:只改变batch_size，从32到8
         self.loss = tf.keras.losses.MeanSquaredError() # 定义损失函数为均方差损失函数
@@ -52,7 +54,7 @@ class BodyrateLearner(object):
 
         # print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
-        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
+        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-5}
         # print(f"now we use lr is base")
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
 
@@ -109,8 +111,10 @@ class BodyrateLearner(object):
 
     def write_train_summaries(self, features, gradients):
         with self.summary_writer.as_default():
+            # tf.summary.scalar('Train Loss', self.train_loss.result(),
+            #                   step=self.optimizer.iterations)
             tf.summary.scalar('Train Loss', self.train_loss.result(),
-                              step=self.optimizer.iterations)
+                              step=tf.cast(self.global_epoch, dtype=tf.int64))
             # add graph
             # tf.summary.graph(tf.compat.v1.get_default_graph())
             # tf.summary.trace_on(graph=True, profiler=True)
@@ -151,20 +155,27 @@ class BodyrateLearner(object):
                 gradients = self.train_step(features, label)
                 if tf.equal(k % self.config.summary_freq, 0):
                     self.write_train_summaries(features, gradients)
-                    self.train_loss.reset_states()
+                    # self.train_loss.reset_states()
+            train_loss_value = self.train_loss.result()
+            self.train_loss.reset_states()
+
             # Eval
             for features, label in tqdm(dataset_val.batched_dataset):
                 features = self.adapt_input_data(features)
                 self.val_step(features, label)
             validation_loss = self.val_loss.result()
-            with self.summary_writer.as_default():
-                tf.summary.scalar("Validation Loss", validation_loss, step=tf.cast(self.global_epoch, dtype=tf.int64))
+            # with self.summary_writer.as_default():
+            #     tf.summary.scalar("Validation Loss", validation_loss, step=tf.cast(self.global_epoch, dtype=tf.int64))
             self.val_loss.reset_states()
+
+            with self.summary_writer.as_default():
+                tf.summary.scalar('Validation Loss', validation_loss, step=tf.cast(self.global_epoch, dtype=tf.int64))
+                tf.summary.scalar('Train Loss', train_loss_value, step=tf.cast(self.global_epoch, dtype=tf.int64))
 
             self.global_epoch = self.global_epoch + 1
             self.ckpt.step.assign_add(1)
             # print(f"========ues train_dir is {self.config.train_dir}========")
-            print("Epoch: {:2d}, Validation Loss: {:.4f}, Train Loss: {:.4f}".format(self.global_epoch, validation_loss, self.train_loss.result()))
+            print("Epoch: {:2d}, Validation Loss: {:.4f}, Train Loss: {:.4f}".format(self.global_epoch, validation_loss, train_loss_value))
 
             if validation_loss < self.min_val_loss or ((epoch + 1) % self.config.save_every_n_epochs) == 0:
                 if validation_loss < self.min_val_loss:

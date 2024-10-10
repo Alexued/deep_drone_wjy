@@ -10,7 +10,7 @@ checkpoint:
 train:
   max_training_epochs: 200
   max_allowed_error: 0.7
-  batch_size: 32
+  batch_size: 16
   summary_freq: 400
   min_number_fts: 40
   train_dir: "data/loop/train"
