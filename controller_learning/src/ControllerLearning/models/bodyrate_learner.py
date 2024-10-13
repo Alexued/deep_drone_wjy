@@ -52,7 +52,7 @@ class BodyrateLearner(object):
 
         # print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
-        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
+        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-5}
         # print(f"now we use lr is base")
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
 
@@ -109,14 +109,16 @@ class BodyrateLearner(object):
 
     def write_train_summaries(self, features, gradients):
         with self.summary_writer.as_default():
+            # tf.summary.scalar('Train Loss', self.train_loss.result(),
+            #                   step=self.optimizer.iterations)
             tf.summary.scalar('Train Loss', self.train_loss.result(),
-                              step=self.optimizer.iterations)
+                              step=tf.cast(self.global_epoch, dtype=tf.int64))
             # add graph
             # tf.summary.graph(tf.compat.v1.get_default_graph())
             # tf.summary.trace_on(graph=True, profiler=True)
             for g, v in zip(gradients, self.network.trainable_variables):
                 tf.summary.histogram(v.name, g, step=self.optimizer.iterations)
-        tf.summary.trace_off()
+        # tf.summary.trace_off()
 
     def train(self):
         # 使tf.function立即执行, 防止bug
