@@ -123,6 +123,7 @@ class Trainer():
                 np.save(t_log_fname, t_log)
 
     def perform_testing(self):
+        print('=== at perform_testing ===')
         learner = TrajectoryLearning.TrajectoryLearning(self.settings, mode="testing")
         shutdown_requested = False
         rollout_idx = 0
@@ -132,7 +133,9 @@ class Trainer():
             if self.settings.verbose:
                 # Will save data for debugging reasons
                 learner.start_data_recording()
+            # Start Flying!
             self.start_experiment(learner)
+            # record data
             start_time = time.time()
             time_run = 0
             ref_log = []
@@ -162,9 +165,6 @@ class Trainer():
 
 
 def main():
-    # 使tf.function立即执行, 防止bug; 0928更新：好像是调试用的
-    # tf.config.experimental_run_functions_eagerly(True)
-
     parser = argparse.ArgumentParser(description='Train RAF network.')
     parser.add_argument('--settings_file', help='Path to settings yaml', required=True)
 

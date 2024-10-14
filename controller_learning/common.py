@@ -61,6 +61,9 @@ def setup_sim():
               "twist:{ linear: {x: 0.0 , y: 0 ,z: 0 } , angular: { x: 0.0 , y: 0 , z: 0.0 }}, "
               "reference_frame: world } }'")
     time.sleep(2)
+    print("==========================")
+    print("   END SIMULATION SETUP   ")
+    print("==========================")
     # start quadrotor
     # os.system("timeout 1s rostopic pub /hummingbird/bridge/arm std_msgs/Bool 'True'")
     # os.system("timeout 1s rostopic pub /hummingbird/autopilot/start std_msgs/Empty")

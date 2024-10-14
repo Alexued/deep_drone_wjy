@@ -32,15 +32,6 @@ class BodyrateLearner(object):
 
         self.network = create_network(self.config)
 
-        # print struct of model
-        # states_conv_model = self.network.states_conv
-        # print('--------model struct--------')
-        # self.network.build((self.config.seq_len, int(64*2)))
-        # self.network.summary()
-        # print('--------model struct--------')
-
-        # exp1:只改变学习率，从1e-3到5e-4
-        # exp2:只改变batch_size，从32到8
         self.loss = tf.keras.losses.MeanSquaredError() # 定义损失函数为均方差损失函数
         initial_learning_rate = 5e-4
         first_decay_steps = 1000
@@ -52,7 +43,6 @@ class BodyrateLearner(object):
         alpha=0.0, 
         name=None)
 
-        # print(f"now we use initial_learning_rate is {initial_learning_rate}, first_decay_steps is {first_decay_steps}")
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
         self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-5}
         # print(f"now we use lr is base")
@@ -82,12 +72,13 @@ class BodyrateLearner(object):
     @tf.function
     def train_step(self, inputs, labels):
         with tf.GradientTape() as tape:
+            start_time = datetime.datetime.now()
             predictions = self.network(inputs)
+            end_time = datetime.datetime.now()
+            print(f"====Inference time: {end_time - start_time}====")
             # print('--------model struct--------')
+            # 注意，使用summary()方法前，需要先把不需要的层数注释掉，比如选的是conv1d,那么需要把dense层注释掉
             # self.network.summary()
-            # plot_model(self.network, to_file='mdoel_struct.png', show_shapes=True)
-            # layer = self.network.get_layer(name='temporal_conv_net_1')
-            # print(layer.get_config())
             # print('--------model struct--------')
             loss = self.loss(labels, predictions)
         gradients = tape.gradient(loss, self.network.trainable_variables)
@@ -204,5 +195,10 @@ class BodyrateLearner(object):
 
     @tf.function
     def inference(self, inputs):
+        # infer time
+        start_time = datetime.datetime.now()
         predictions = self.network(inputs)
+        end_time = datetime.datetime.now()
+        infer_time = end_time - start_time
+        # print(f"====Inference time: {infer_time}====")
         return predictions
