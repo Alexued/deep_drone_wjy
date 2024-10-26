@@ -38,6 +38,7 @@ def update_mpc_params():
 
 
 def setup_sim():
+    # print('sart setup sim')
     print("==========================")
     print("     RESET SIMULATION     ")
     print("==========================")
@@ -45,8 +46,13 @@ def setup_sim():
     # set odometry converter back to ground truth state estimate
     # make sure fpv_aggressive_trajectories is not publishing anything!
     # turn off network
+    # 这两个地方会经过神经网络并让神经网络推理一次
+    # print("===befote rostopic pub /hummingbird/switch_to_network std_msgs/Bool 'data: false'===")
     os.system("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: false'")
+    # print("===after rostopic pub /hummingbird/switch_to_network std_msgs/Bool 'data: false'===")
+    # print("===before rostopic pub /hummingbird/switch_to_network std_msgs/Bool 'data: false'===")
     os.system("timeout 1s  rostopic pub /hummingbird/switch_to_network std_msgs/Bool 'data: false'")
+    # print("===after rostopic pub /hummingbird/switch_to_network std_msgs/Bool 'data: false'===")
     # after this message, autopilot will automatically go to 'BREAKING' and 'HOVER' state since
     # no control_command_inputs are published any more
     os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
@@ -64,6 +70,7 @@ def setup_sim():
     print("==========================")
     print("   END SIMULATION SETUP   ")
     print("==========================")
+    # print('end setup sim')
     # start quadrotor
     # os.system("timeout 1s rostopic pub /hummingbird/bridge/arm std_msgs/Bool 'True'")
     # os.system("timeout 1s rostopic pub /hummingbird/autopilot/start std_msgs/Empty")
@@ -77,19 +84,26 @@ def random_replace():
 def initialize_vio():
     print('===Start initialize vio====')
     # Make sure to use GT odometry in this step
+    # print("timeout 1s rostopic pub /hummingbird/autopilot/off std_msgs/Empty")
     os.system("timeout 1s rostopic pub /hummingbird/autopilot/off std_msgs/Empty")
+    # print("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
     os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
 
     # reset quad to initial position
+    # print("timeout 1s rostopic pub /success_reset std_msgs/Empty")
     os.system("timeout 1s rostopic pub /hummingbird/bridge/arm std_msgs/Bool 'True'")
     print("Start quadrotor")
+    # print("timeout 1s rostopic pub /hummingbird/autopilot/start std_msgs/Empty")
     os.system("timeout 1s rostopic pub /hummingbird/autopilot/start std_msgs/Empty")
     time.sleep(10)
     # Restart VIO
+    # print("timeout 1s rostopic pub /feature_tracker/restart std_msgs/Bool 'data: true'")
     os.system("timeout 1s rostopic pub /feature_tracker/restart std_msgs/Bool 'data: true'  ")
+    # print("timeout 1s rostopic pub /hummingbird/autopilot/pose_command geometry_msgs/PoseStamped")
     os.system(
         "timeout 1s rostopic pub /hummingbird/autopilot/pose_command geometry_msgs/PoseStamped '{header: {seq: 0, stamp: {secs: 0, nsecs: 0} , frame_id: world}, pose:{position: { x: 0.0, y: 5.0, z: 4.0}, orientation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0} } }'")
     time.sleep(9)
+    # print("===end initialize vio===")
     # TODO: maybe remove this
     # os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Bool 'data: true'")
     return

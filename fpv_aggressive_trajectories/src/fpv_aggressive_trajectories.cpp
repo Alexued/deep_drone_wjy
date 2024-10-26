@@ -116,9 +116,9 @@ void FPVAggressiveTrajectories::computeManeuver() {
                            1, 4.5, 1.5, offset_circle_from_start,
                            offset_circle_from_end, true, traj_sampling_freq_);
   // matty loop
-  success = success && acrobatic_sequence.appendMattyLoop(1, 4.5, 1.5, offset_circle_from_start, offset_circle_from_end);
+  // success = success && acrobatic_sequence.appendMattyLoop(1, 4.5, 1.5, offset_circle_from_start, offset_circle_from_end);
   // barrel roll
-  success = success && acrobatic_sequence.appendBarrelRoll(1, 4.5, 1.5, offset_circle_from_start, offset_circle_from_end, true);
+  // success = success && acrobatic_sequence.appendBarrelRoll(1, 4.5, 1.5, offset_circle_from_start, offset_circle_from_end, true);
 
   visualizer_->visualizeTrajectories(acrobatic_sequence.getManeuverList());
 

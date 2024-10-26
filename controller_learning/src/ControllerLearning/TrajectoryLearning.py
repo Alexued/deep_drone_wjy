@@ -42,6 +42,8 @@ class TrajectoryLearning(TrajectoryBase):
         # 接受vins估计的imu融合数据
         self.vins_mono_sub = rospy.Subscriber("/vins_estimator/imu_propagate", Odometry,
                                               self.callback_vins_mono, queue_size=1)
+        self.infer_time = []
+        # print('TrajectoryLearning init done')
         # 如果是iterative迭代模式，就开始写入csv文件
         if mode == "iterative" or self.config.verbose:
             self.write_csv_header()
@@ -163,7 +165,9 @@ class TrajectoryLearning(TrajectoryBase):
             self.recorded_samples += 1
 
     def callback_control_command(self, data):
+        # print('===in callback_control_command===')
         self.control_command = data
+        # print(f"control_command: {self.control_command}")
         self._generate_control_command()
         if self.mode == 'testing' and self.gt_odometry.pose.pose.position.z < 0.3:
             self.success = 0
@@ -179,13 +183,18 @@ class TrajectoryLearning(TrajectoryBase):
         return results
 
     def publish_control_command(self, control_command):
+        # print('===in publish_control_command===')
         control_command.collective_thrust = self.latest_thrust_factor * control_command.collective_thrust
+        # print(f'control_command.collective_thrust: {control_command.collective_thrust}')
+        # 给/control_command话题发布油门数据，但是不知道发了多少次
         self.pub_actions.publish(control_command)
 
     def _generate_control_command(self):
+        # print('===in _generate_control_command===')
         inputs = self._prepare_net_inputs()
         if not self.net_initialized:
             # Apply Network to init
+            print("===init network===")
             results = self.learner.inference(inputs)
             print("Net initialized")
             self.net_initialized = True
@@ -207,7 +216,16 @@ class TrajectoryLearning(TrajectoryBase):
             return
 
         # Apply Network
+        # 这里产生了一次网络的推理
+        # print('===before inference in _generate_control_command===')
+        start_time = datetime.datetime.now()
         results = self.learner.inference(inputs)
+        end_time = datetime.datetime.now()
+        inference_time = end_time.microsecond - start_time.microsecond
+        # print(f"====Inference time: {inference_time}====")
+        if inference_time <= 10000 and inference_time >= 0:
+            self.infer_time.append(abs(inference_time))
+        # print('===after inference in _generate_control_command===')
         control_command = ControlCommand()
         control_command.armed = True
         control_command.expected_execution_time = rospy.Time.now()
@@ -217,12 +235,14 @@ class TrajectoryLearning(TrajectoryBase):
         control_command.bodyrates.y = results[0][2].numpy()
         control_command.bodyrates.z = results[0][3].numpy()
         self.net_control = control_command
+        # print(f'self.net_control: {self.net_control}')
 
         # Log immediately everything to avoid surprises (if required)
         if self.record_data:
             self.save_data()
 
         # Apply random controller now and then to facilitate exploration
+        # 不是在测试模式下进行随即加偏差
         if (self.mode != 'testing') and random.random() < self.config.rand_controller_prob:
             self.control_command.collective_thrust += self.config.rand_thrust_mag * (random.random() - 0.5) * 2
             self.control_command.bodyrates.x += self.config.rand_rate_mag * (random.random() - 0.5) * 2
@@ -232,6 +252,7 @@ class TrajectoryLearning(TrajectoryBase):
             return
 
         # Dagger (on control command label).
+        # 不知道这里的d是给谁的，为什么要减掉control_command，为什么这样会成为后面的判断条件
         d_thrust = control_command.collective_thrust - self.control_command.collective_thrust
         d_br_x = control_command.bodyrates.x - self.control_command.bodyrates.x
         d_br_y = control_command.bodyrates.y - self.control_command.bodyrates.y
@@ -243,6 +264,7 @@ class TrajectoryLearning(TrajectoryBase):
                 and abs(d_br_z) < self.config.fallback_threshold_rates:
             self.n_times_net += 1
             self.publish_control_command(control_command)
+            print(f"self.n_times_net: {self.n_times_net}")
         else:
             self.n_times_expert += 1
             self.publish_control_command(self.control_command)

@@ -1,0 +1,20 @@
+quad_name: 'hummingbird'
+log_dir: '/home/wjy/drone_acrobatics_ws/catkin_dda/src/deep_drone_acrobatics/controller_learning/config/log/test'
+ideal_inputs: False
+seq_len: 1
+verbose: True
+throw_params:
+  vlin_range: 5
+  vang_range: 5
+  pos_range: 5
+checkpoint:
+  resume_training: True
+  resume_file: "/home/wjy/drone_acrobatics_ws/catkin_dda/src/deep_drone_acrobatics/controller_learning/ckpt/loop/fts_and_imu/ckpt-7"
+test_time:
+  max_rollouts: 5
+  min_number_fts: 40
+  execute_nw_predictions: True
+  fallback_threshold_thrust: 100
+  fallback_threshold_rates: 100
+  use_imu: True
+  use_fts_tracks: True

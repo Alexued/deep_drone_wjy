@@ -117,6 +117,7 @@ class TrajectoryBase(object):
         # 订阅是否开始轨迹
         self.trajectory_start = rospy.Subscriber("/" + self.config.quad_name + "/trajectory_computation_finish", Bool,
                                                  self.callback_start_trajectory, queue_size=10)
+        print("TrajectoryBase initialized")
         if self.mode == "testing":
             self.success = 1
 

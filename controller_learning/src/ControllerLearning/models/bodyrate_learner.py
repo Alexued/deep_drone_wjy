@@ -19,6 +19,7 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = "2"
 
 class BodyrateLearner(object):
     def __init__(self, settings):
+        # print("===at BodyrateLearner init===")
         self.config = settings # 读取配置文件，赋值到self.config
         # 检测设备，读取GPU
         physical_devices = tf.config.experimental.list_physical_devices('GPU')
@@ -75,11 +76,11 @@ class BodyrateLearner(object):
             start_time = datetime.datetime.now()
             predictions = self.network(inputs)
             end_time = datetime.datetime.now()
-            print(f"====Inference time: {end_time - start_time}====")
-            # print('--------model struct--------')
+            # print(f"====Inference time: {end_time - start_time}====")
+            print('--------model struct start--------')
             # 注意，使用summary()方法前，需要先把不需要的层数注释掉，比如选的是conv1d,那么需要把dense层注释掉
-            # self.network.summary()
-            # print('--------model struct--------')
+            self.network.summary()
+            print('--------model struct end--------')
             loss = self.loss(labels, predictions)
         gradients = tape.gradient(loss, self.network.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.network.trainable_variables))
@@ -200,5 +201,5 @@ class BodyrateLearner(object):
         predictions = self.network(inputs)
         end_time = datetime.datetime.now()
         infer_time = end_time - start_time
-        # print(f"====Inference time: {infer_time}====")
+        print(f"====Inference time: {infer_time}====")
         return predictions

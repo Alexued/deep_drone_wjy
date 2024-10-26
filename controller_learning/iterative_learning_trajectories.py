@@ -26,6 +26,7 @@ class Trainer():
         self.trajectory_done = data.data
 
     def start_experiment(self, learner):
+        # print('=== at start_experiment ===')
         reset_success_str = 'rostopic pub /success_reset std_msgs/Empty "{}" -1'
         os.system(reset_success_str)
         initialize_vio()
@@ -60,6 +61,8 @@ class Trainer():
                 os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
         # Start Flying!
         os.system("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
+        print("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
+        # print('=== end start_experiment ===')
         return vio_init_good
 
     def perform_training(self):
@@ -123,7 +126,7 @@ class Trainer():
                 np.save(t_log_fname, t_log)
 
     def perform_testing(self):
-        print('=== at perform_testing ===')
+        # print('=== at perform_testing ===')
         learner = TrajectoryLearning.TrajectoryLearning(self.settings, mode="testing")
         shutdown_requested = False
         rollout_idx = 0
@@ -135,6 +138,8 @@ class Trainer():
                 learner.start_data_recording()
             # Start Flying!
             self.start_experiment(learner)
+            avg_inference_time = sum(learner.infer_time) / len(learner.infer_time)
+            print("Average Inference Time is {:.03f}".format(avg_inference_time))                                                                                                                                                                                                   
             # record data
             start_time = time.time()
             time_run = 0
