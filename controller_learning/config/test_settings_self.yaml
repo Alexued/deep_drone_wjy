@@ -9,7 +9,7 @@ throw_params:
   pos_range: 5
 checkpoint:
   resume_training: True
-  resume_file: "/home/wjy/drone_acrobatics_ws/catkin_dda/src/deep_drone_acrobatics/controller_learning/results/train_fma_cork_seq_1_fts_tracks_newcam_new_end/20241009-200606/train/ckpt-23"
+  resume_file: "/home/wjy/drone_acrobatics_ws/catkin_dda/src/deep_drone_acrobatics/controller_learning/results/train_fma_cork_seq_1_fts_tracks_newcam_new_end/20241008-135407/train/ckpt-68"
 test_time:
   max_rollouts: 5
   min_number_fts: 40

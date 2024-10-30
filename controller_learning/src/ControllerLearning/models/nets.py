@@ -173,6 +173,7 @@ class AggressiveNet(Network):
             ]
 
         # 这是MLP网络
+        activation = dict_activation['GELU']
         self.control_module = [Dense(64*g),
                                activation,
                                Dense(32*g),
@@ -184,7 +185,7 @@ class AggressiveNet(Network):
         # # 这里换成一维卷积
         activation = LeakyReLU(alpha=1e-2)
         # input_shape = (self.config.batch_size, self.config.seq_len, 256)
-        inputs = tf.keras.Input(shape=(1, 256))
+        # inputs = tf.keras.Input(shape=(1, 256))
         self.conv1d_control_module = [
             tf.keras.layers.Conv1D(filters=128, kernel_size=1, padding='same', activation=activation),
             tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='same', activation=activation),
