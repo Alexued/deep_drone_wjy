@@ -122,14 +122,14 @@ class AggressiveNet(Network):
         dict_activation = {"ReLU": ReLU(), "GELU": GELU, "LeakyReLU": LReLU}
         # activation = dict_activation['LeakyReLU']
         activation = LeakyReLU(alpha=1e-2)
-        # TCN
-        self.tcn = TCN(
-            nb_filters=64, 
-            kernel_size=3, 
-            dilations=[1, 2, 4, 8, 16, 32],
-            padding='causal',
-            activation='relu',
-            return_sequences=True)
+        # # TCN
+        # self.tcn = TCN(
+        #     nb_filters=64, 
+        #     kernel_size=3, 
+        #     dilations=[1, 2, 4, 8, 16, 32],
+        #     padding='causal',
+        #     activation='relu',
+        #     return_sequences=True)
 
         if self.config.use_fts_tracks:
             f = 2.0
@@ -156,20 +156,14 @@ class AggressiveNet(Network):
             # fts_mergenet是特征轨迹
             input_size = (self.config.seq_len, int(64*f))
             activation = dict_activation['GELU']
-            # 将 TCN 架构与其他必要层整合到列表中
-            # self.fts_mergenet = [
-            #     TemporalConvNet(
-            #     num_inputs=input_size,  # 输入通道数
-            #     num_hidden_channels=[int(64 * f), int(32 * f), int(32 * f), int(32 * f)],  # 隐藏层通道数
-            #     kernel_size=2,  # 卷积核大小
-            #     dropout=0.2,  # Dropout 比率
-            #     activation=activation  # 激活函数
-            #     ),
-            #     Flatten(),
-            #     Dense(int(64 * f))
-            # ]
             self.fts_mergenet = [
-                self.tcn,
+                TCN(
+                nb_filters=64, 
+                kernel_size=3, 
+                dilations=[1, 2, 4, 8, 16, 32],
+                padding='causal',
+                activation='relu',
+                return_sequences=True),
                 Flatten(),
                 Dense(int(64 * f))
             ]
@@ -179,27 +173,14 @@ class AggressiveNet(Network):
         # states_conv是融合imu
         g = 2.0
         
-        # self.states_conv = [
-        #     TemporalConvNet(
-        #     num_inputs=input_size,  # 输入通道数
-        #     num_hidden_channels=[int(64 * g), int(32 * g), int(32 * g), int(32 * g)],  # 隐藏层通道数
-        #     kernel_size=2,  # 卷积核大小
-        #     dropout=0.2,  # Dropout 比率
-        #     activation=activation  # 激活函数
-        #     ),
-        #     Flatten(),
-        #     Dense(int(64 * g))
-        # ]
-        self.tcn = TCN(
+        self.states_conv = [
+            TCN(
             nb_filters=60, 
             kernel_size=3, 
             dilations=[1, 2, 4, 8, 16, 32],
             padding='causal',
             activation='relu',
-            return_sequences=True)
-        
-        self.states_conv = [
-            self.tcn,
+            return_sequences=True),
             Flatten(),
             Dense(int(64 * g))
         ]
@@ -240,15 +221,15 @@ class AggressiveNet(Network):
                                      parallel_iterations=self.config.seq_len) # (seq_len, batch_size, 64)
         preprocessed_fts = tf.transpose(preprocessed_fts, (1,0,2)) # (batch_size, seq_len, 64)
         x = preprocessed_fts
-        print(f"input x shape: {x.shape}")
+        # print(f"input x shape: {x.shape}")
         for f in self.fts_mergenet:
             x = f(x)
-        print(f"output x shape: {x.shape}")
+        # print(f"output x shape: {x.shape}")
         return x
 
     def _states_branch(self, embeddings):
         x = embeddings
-        print(f"states_branch input x shape: {x.shape}")
+        # print(f"states_branch input x shape: {x.shape}")
         for f in self.states_conv:
             x = f(x)
         return x

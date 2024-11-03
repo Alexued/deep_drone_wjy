@@ -5,8 +5,11 @@
     <arg name="enable_command_feedthrough" default="true"/>
     <arg name="controller" default="rpg_mpc"/>
     <!-- VIO Pipeline -->
-    <include file="$(find vins_estimator)/launch/raf_simulation.launch">
-    </include>
+    <!-- <include file="$(find vins_estimator)/launch/raf_simulation.launch">
+    </include> -->
+    <!-- <include file="/home/wjy/drone_acrobatics_ws/catkin_dda/src/VINS-Fusion/vins_estimator/launch/raf_simulation.launch">
+    </include> -->
+
     <!-- Quadrotor simulation -->
     <include file="$(find controller_learning)/launch/simulation/quadrotor_rgb_world_no_controller.launch">
         <arg name="quad_name" value="$(arg quad_name)"/>

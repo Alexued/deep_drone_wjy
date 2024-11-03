@@ -33,6 +33,7 @@
               type="fpv_aggressive_trajectories" output="screen">
             <param name="loop_rate" value="55.0"/>
             <param name="desired_yaw_P" value="0.0"/>
+            <!-- 速度 -->
             <param name="circle_velocity" value="3.5"/> <!-- 3.5 for nice looping; 1.0-2.0 for testing -->
             <param name="n_loops" value="1"/>
         </node>

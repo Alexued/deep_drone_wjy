@@ -1,7 +1,7 @@
 state_estimate_timeout: 5.0 # [s]
 velocity_estimate_in_world_frame: false
 control_command_delay: 0.05 # [s]
-
+# 速度设置
 start_land_velocity: 0.5 # [m/s]
 start_land_acceleration: 1 # [m/s^2]
 start_idle_duration: 2.0 # [s]

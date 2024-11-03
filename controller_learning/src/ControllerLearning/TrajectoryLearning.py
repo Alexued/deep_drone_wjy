@@ -75,10 +75,15 @@ class TrajectoryLearning(TrajectoryBase):
         self.gt_odometry = data
 
     def callback_vins_mono(self, data):
+        # print('===in callback_vins_mono===')
         self.vins_odometry = data
+        # print(f"vins_odometry: {self.vins_odometry}")
 
     @property
     def vio_init_good(self):
+        if self.vins_odometry is None:
+            print('vio_init_good: vins_odometry is None')
+            return False
         max_allowed_velocity = 0.1
         if abs(self.vins_odometry.twist.twist.linear.x) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.y) < max_allowed_velocity and \
