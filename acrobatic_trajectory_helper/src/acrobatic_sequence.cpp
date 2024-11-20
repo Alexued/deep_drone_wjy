@@ -141,6 +141,96 @@ bool AcrobaticSequence::appendLoops(
            breaking_trajectory.trajectory_type ==
                quadrotor_common::Trajectory::TrajectoryType::UNDEFINED);
 }
+// 正方形轨迹
+bool AcrobaticSequence::appendSquareLoops(
+    const int n_loops, const double& square_velocity, const double& side_length,
+    const Eigen::Vector3d& square_center_offset,
+    const Eigen::Vector3d& square_center_offset_end, const bool break_at_end,
+    const double& traj_sampling_freq) {
+  printf("appending square loop\n");
+
+  // 获取初始状态
+  quadrotor_common::TrajectoryPoint init_state =
+      maneuver_list_.back().points.back();
+
+  printf(
+      "Enter state of loop maneuver: Pos: %.2f, %.2f, %.2f | Vel: %.2f, %.2f, "
+      "%.2f\n",
+      init_state.position.x(), init_state.position.y(), init_state.position.z(),
+      init_state.velocity.x(), init_state.velocity.y(),
+      init_state.velocity.z());
+
+  const double exec_loop_rate = traj_sampling_freq;
+  const double desired_heading = 0.0;
+
+  // 计算正方形的顶点
+  const Eigen::Vector3d square_center =
+      init_state.position + square_center_offset;
+  printf("square center: %.2f, %.2f, %.2f\n", square_center.x(),
+         square_center.y(), square_center.z());
+
+  std::vector<Eigen::Vector3d> square_vertices;
+  square_vertices.push_back(square_center + Eigen::Vector3d(0.0, 0.0, 2.0));
+  square_vertices.push_back(square_center + Eigen::Vector3d(2.0, 0.0, 2.0));
+  square_vertices.push_back(square_center + Eigen::Vector3d(2.0, 2.0, 2.0));
+  square_vertices.push_back(square_center + Eigen::Vector3d(0.0, 2.0, 2.0));
+
+  quadrotor_common::TrajectoryPoint start_state = init_state;
+  quadrotor_common::Trajectory square_trajectory;
+  square_trajectory.trajectory_type = quadrotor_common::Trajectory::TrajectoryType::GENERAL;
+
+  for (int i = 0; i < square_vertices.size(); ++i) {
+    quadrotor_common::TrajectoryPoint next_state;
+    next_state.position = square_vertices[i];
+    next_state.velocity = Eigen::Vector3d(square_velocity, 0.0, 0.0);
+
+    quadrotor_common::Trajectory segment_trajectory =
+        acrobatic_trajectory_helper::polynomials::computeTimeOptimalTrajectory(
+            start_state, next_state, 4, 1.1 * square_velocity, 15.0,
+            2.0 * 3.0, exec_loop_rate);
+    acrobatic_trajectory_helper::heading::addConstantHeading(
+        desired_heading, &segment_trajectory);
+
+    for (const auto& point : segment_trajectory.points) {
+      square_trajectory.points.push_back(point);
+    }
+
+    start_state = next_state;
+  }
+
+  quadrotor_common::TrajectoryPoint end_state;
+  end_state.position = square_center + square_center_offset_end;
+  end_state.velocity = Eigen::Vector3d(square_velocity, 0.0, 0.0);
+
+  quadrotor_common::Trajectory exit_trajectory =
+      acrobatic_trajectory_helper::polynomials::computeTimeOptimalTrajectory(
+          start_state, end_state, 4, 1.1 * square_velocity, 15.0,
+          2.0 * 3.0, exec_loop_rate);
+  acrobatic_trajectory_helper::heading::addConstantHeading(
+      desired_heading, &exit_trajectory);
+
+  maneuver_list_.push_back(square_trajectory);
+  maneuver_list_.push_back(exit_trajectory);
+
+  if (break_at_end) {
+    quadrotor_common::TrajectoryPoint end_state_hover;
+    end_state_hover.position =
+        (end_state.position + Eigen::Vector3d(2.0, 0.0, 0.0));
+    end_state_hover.velocity = Eigen::Vector3d::Zero();
+    quadrotor_common::Trajectory breaking_trajectory =
+        acrobatic_trajectory_helper::polynomials::computeTimeOptimalTrajectory(
+            end_state, end_state_hover, 4, 1.1 * square_velocity, 15.0,
+            2.0 * 3.0, exec_loop_rate);
+    acrobatic_trajectory_helper::heading::addConstantHeading(
+        0.0, &breaking_trajectory);
+    maneuver_list_.push_back(breaking_trajectory);
+  }
+
+  return !(square_trajectory.trajectory_type ==
+               quadrotor_common::Trajectory::TrajectoryType::UNDEFINED ||
+           exit_trajectory.trajectory_type ==
+               quadrotor_common::Trajectory::TrajectoryType::UNDEFINED);
+}
 
 bool AcrobaticSequence::appendMattyLoop(const int n_loops, const double& circle_velocity, const double& radius,
                                         const Eigen::Vector3d& circle_center_offset,

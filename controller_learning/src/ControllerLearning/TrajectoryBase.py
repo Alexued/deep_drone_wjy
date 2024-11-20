@@ -129,7 +129,7 @@ class TrajectoryBase(object):
         print("Stop data collection")
         self.record_data = False
         expert_usage = self.n_times_expert / (self.n_times_net + self.n_times_expert)
-        print(f"专家利用率expert_usage: {expert_usage}")
+        print(f"专家利用率expert_usage: {expert_usage}, fix me latter...")
         return expert_usage
 
     def reset_queue(self):

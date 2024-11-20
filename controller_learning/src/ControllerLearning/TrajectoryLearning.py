@@ -12,7 +12,7 @@ from std_msgs.msg import Bool
 from std_msgs.msg import Empty
 
 from .TrajectoryBase import TrajectoryBase, TRACK_NUM_NORMALIZE
-
+import time
 
 
 class TrajectoryLearning(TrajectoryBase):
@@ -23,7 +23,7 @@ class TrajectoryLearning(TrajectoryBase):
         self.recorded_samples = 0
         if self.mode == 'training':
             return  # Nothing to initialize
-        self.pub_reset_vio = rospy.Publisher("/feature_tracker/restart",
+        self.pub_reset_vio = rospy.Publisher("/vins_restart",
                                              Bool, queue_size=1)
         self.success_subs = rospy.Subscriber("success_reset", Empty,
                                              self.callback_success_reset,
@@ -82,15 +82,17 @@ class TrajectoryLearning(TrajectoryBase):
     @property
     def vio_init_good(self):
         if self.vins_odometry is None:
-            print('vio_init_good: vins_odometry is None')
-            return False
+            rospy.logwarn('vins_odometry is None, restart VIO and sleep 2s...')
+            # os.system("timeout 1s rostopic pub /vins_restart std_msgs/Bool 'data: true'  ")
+            # time.sleep(2)
+            return 3
         max_allowed_velocity = 0.1
         if abs(self.vins_odometry.twist.twist.linear.x) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.y) < max_allowed_velocity and \
                 abs(self.vins_odometry.twist.twist.linear.z) < max_allowed_velocity:
-            rospy.loginfo(f'VIO init is GOOD ,now {self.vins_odometry.twist.twist.linear.x},'
-                  f'{self.vins_odometry.twist.twist.linear.y},'
-                  f'{self.vins_odometry.twist.twist.linear.z}')
+            rospy.loginfo(f'VIO init is GOOD ,now {abs(self.vins_odometry.twist.twist.linear.x)},'
+                  f'{abs(self.vins_odometry.twist.twist.linear.y)},'
+                  f'{abs(self.vins_odometry.twist.twist.linear.z)}')
             return True
         else:
             rospy.logwarn(f'VIO init is BAD ,now {self.vins_odometry.twist.twist.linear.x},'

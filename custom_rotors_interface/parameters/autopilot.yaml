@@ -14,7 +14,7 @@ propeller_ramp_down_timeout: 1.5 # [s]
 breaking_velocity_threshold: 0.2 # [m/s]
 breaking_timeout: 0.5 # [s]
 
-go_to_pose_max_velocity: 3.5 # [m/s]
+go_to_pose_max_velocity: 7.0 # [m/s]
 go_to_pose_max_normalized_thrust: 15.0 # [m/s^2]
 go_to_pose_max_roll_pitch_rate: 1.0 # [rad/s]
 

@@ -25,7 +25,11 @@ class AcrobaticSequence {
   bool appendMattyLoop(const int n_loops, const double& circle_velocity, const double& radius,
                        const Eigen::Vector3d& circle_center_offset,
                        const Eigen::Vector3d& circle_center_offset_end);
-
+                       
+  bool appendSquareLoops(const int n_loops, const double& circle_velocity,
+                       const double& radius, const Eigen::Vector3d& circle_center_offset,
+                       const Eigen::Vector3d& circle_center_offset_end,
+                       const bool break_at_end, const double& traj_sampling_freq);
   std::list<quadrotor_common::Trajectory> getManeuverList();
 
  private:

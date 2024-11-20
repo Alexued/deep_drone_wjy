@@ -98,7 +98,7 @@ def initialize_vio():
     time.sleep(10)
     # Restart VIO
     # print("timeout 1s rostopic pub /feature_tracker/restart std_msgs/Bool 'data: true'")
-    os.system("timeout 1s rostopic pub /feature_tracker/restart std_msgs/Bool 'data: true'  ")
+    os.system("timeout 1s rostopic pub /vins_restart std_msgs/Bool 'data: true'  ")
     # print("timeout 1s rostopic pub /hummingbird/autopilot/pose_command geometry_msgs/PoseStamped")
     os.system(
         "timeout 1s rostopic pub /hummingbird/autopilot/pose_command geometry_msgs/PoseStamped '{header: {seq: 0, stamp: {secs: 0, nsecs: 0} , frame_id: world}, pose:{position: { x: 0.0, y: 5.0, z: 4.0}, orientation: { x: 0.0, y: 0.0, z: 0.0, w: 1.0} } }'")
