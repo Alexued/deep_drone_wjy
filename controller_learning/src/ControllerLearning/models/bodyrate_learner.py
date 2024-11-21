@@ -112,7 +112,7 @@ class BodyrateLearner(object):
             # tf.summary.trace_on(graph=True, profiler=True)
             for g, v in zip(gradients, self.network.trainable_variables):
                 tf.summary.histogram(v.name, g, step=self.optimizer.iterations)
-        tf.summary.trace_off()
+        # tf.summary.trace_off()
 
     def train(self):
         # 使tf.function立即执行, 防止bug
