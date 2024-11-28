@@ -45,7 +45,7 @@ class BodyrateLearner(object):
         name=None)
 
         # self.lr = {'cosinedecayrestarts': tf.keras.experimental.CosineDecayRestarts(1e-3, 50000, 1.5, 0.75, 0.01), "base":1e-4}
-        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-5}
+        self.lr = {'cosinedecayrestarts': self.net_cosinedecayrestarts, "base":1e-4}
         # print(f"now we use lr is base")
         self.optimizer = tf.keras.optimizers.Adam(learning_rate=self.lr['base'], clipvalue=.2)
 
@@ -77,10 +77,10 @@ class BodyrateLearner(object):
             predictions = self.network(inputs)
             end_time = datetime.datetime.now()
             # print(f"====Inference time: {end_time - start_time}====")
-            print('--------model struct start--------')
+            # print('--------model struct start--------')
             # 注意，使用summary()方法前，需要先把不需要的层数注释掉，比如选的是conv1d,那么需要把dense层注释掉
-            self.network.summary()
-            print('--------model struct end--------')
+            # self.network.summary()
+            # print('--------model struct end--------')
             loss = self.loss(labels, predictions)
         gradients = tape.gradient(loss, self.network.trainable_variables)
         self.optimizer.apply_gradients(zip(gradients, self.network.trainable_variables))

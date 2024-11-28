@@ -205,13 +205,13 @@ class AggressiveNet(Network):
         ]
 
         # 这是MLP网络
-        # self.control_module = [Dense(64*g),
-        #                        activation,
-        #                        Dense(32*g),
-        #                        activation,
-        #                        Dense(16*g),
-        #                        activation,
-        #                        Dense(4)]
+        self.control_module = [Dense(64*g),
+                               activation,
+                               Dense(32*g),
+                               activation,
+                               Dense(16*g),
+                               activation,
+                               Dense(4)]
 
         # # 这里换成一维卷积
         activation = LeakyReLU(alpha=1e-2)
@@ -254,7 +254,7 @@ class AggressiveNet(Network):
         return x
 
     def _control_branch(self, embeddings):
-        mode = 'conv1d'
+        mode = 'dense'
         print(f"control_branch use {mode}")
         if mode == 'conv1d':
             embeddings = tf.expand_dims(embeddings, axis=1)
