@@ -66,8 +66,8 @@ class TrajectoryBase(object):
         
         # 初始化滚动索引和网络、专家调用次数
         self.rollout_idx = 0
-        self.n_times_net = 0.001 # 为了应对奇怪的Gazebo行为
-        self.n_times_expert = 0
+        self.n_times_net = 0.001 # network调用次数
+        self.n_times_expert = 0 # 专家调用次数
         
         # 设置运行模式
         self.mode = mode
@@ -102,7 +102,7 @@ class TrajectoryBase(object):
                                         self.callback_ref,
                                         queue_size=1,
                                         tcp_nodelay=True)
-        # 订阅控制命令
+        # 订阅控制命令,从mpc出来的
         self.control_command_sub = rospy.Subscriber("/" + self.config.quad_name + "/control_command_label",
                                                     ControlCommand,
                                                     self.callback_control_command, queue_size=1,
@@ -280,7 +280,7 @@ class TrajectoryBase(object):
                                         self.ref_state.velocity.angular.x,
                                         self.ref_state.velocity.angular.y,
                                         self.ref_state.velocity.angular.z]
-
+        # Odom
         if self.config.use_imu:
 
             imu_states = self.odom_rot + [

@@ -23,9 +23,9 @@
   <!-- Instantiate the mav-->
   <!-- xacro:include filename="$(find rotors_description)/urdf/$(arg mav_name)_base.xacro" / -->
   <xacro:include filename="$(find fpv_aggressive_trajectories)/resources/urdf/$(arg mav_name)_base.xacro" />
-  <!-- <xacro:include filename="$(find realsense_ros_gazebo)/xacro/depthcam.xacro" /> -->
+  <xacro:include filename="$(find realsense_ros_gazebo)/xacro/depthcam.xacro" />
   <!-- <xacro:include filename="$(find realsense_ros_gazebo)/xacro/_d435.urdf.xacro" /> -->
-  <!-- <xacro:include filename="$(find realsense_ros_gazebo)/xacro/_d435i.urdf.xacro"/> -->
+  <xacro:include filename="$(find realsense_ros_gazebo)/xacro/_d435i.urdf.xacro"/>
 
   <!-- from depthcam, d435 no i -->
   <!-- <xacro:realsense_d435 sensor_name="d435" parent_link="${namespace}/base_link" rate="10">
@@ -36,9 +36,10 @@
     <origin xyz="0.01 0 0.0" rpy="0 0 0" />
   </xacro:sensor_d435> -->
 
-  <!-- <xacro:sensor_d435i parent="${namespace}/base_link" name="D435i_camera" topics_ns="${namespace}/D435i_camera" unite_imu_method="copy" > 
+  <xacro:sensor_d435i parent="${namespace}/base_link" name="D435i_camera" topics_ns="${namespace}/D435i_camera" unite_imu_method="copy" > 
+  <!-- <xacro:sensor_d435i name="camera" topics_ns="camera" parent="base_link" publish_pointcloud="true"> -->
     <origin xyz="0.005 0 0.05" rpy="0 0 0" />
-  </xacro:sensor_d435i> -->
+  </xacro:sensor_d435i>
 
 
   <!-- Mount a generic odometry sensor without odometry map (working everywhere). -->
@@ -90,8 +91,8 @@
     <cylinder length="0.01" radius="0.007" />
     <origin xyz="0.3 0.0 -0.10" rpy="0.0 0.0 0.0" />
   </xacro:camera_macro_distorted>
-
-  <xacro:camera_macro_distorted
+  <!-- 模拟双目 -->
+  <!-- <xacro:camera_macro_distorted
     namespace="${namespace}/rgb_camera_right"
     parent_link="${namespace}/base_link"
     camera_suffix="1"
@@ -107,11 +108,11 @@
     enable_visual="true">
     <cylinder length="0.01" radius="0.007" />
     <origin xyz="0.3 -0.1 -0.1" rpy="0.0 0.0 0.0" />
-  </xacro:camera_macro_distorted>
+  </xacro:camera_macro_distorted> -->
 
  
   <!-- RGB camera (ideal)-->
-  <xacro:camera_macro_distorted
+  <!-- xacro:camera_macro
     namespace="${namespace}/rgb_camera"
     parent_link="${namespace}/base_link"
     camera_suffix="1"
@@ -127,7 +128,7 @@
     enable_visual="true">
     <cylinder length="0.01" radius="0.007" />
     <origin xyz="0.3 0.0 -0.10" rpy="0.0 0.0 0.0" />
-  </xacro:camera_macro_distorted>
+  </xacro:camera_macro -->
 
 </robot>
 

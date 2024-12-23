@@ -5,6 +5,7 @@
     <arg name="mav_name" default="$(arg quad_name)"/>
     <arg name="model" value="$(find fpv_aggressive_trajectories)/resources/urdf/mav_generic_odometry_sensor_rgb.gazebo"/>
     <arg name="world_name" default="$(find fpv_aggressive_trajectories)/resources/worlds/controller_learning.world"/>
+    <!-- <arg name="world_name" default="$(find fpv_aggressive_trajectories)/resources/worlds/single_gate.world"/> -->
 
     <arg name="x_init" default="0"/>
     <arg name="y_init" default="0"/>

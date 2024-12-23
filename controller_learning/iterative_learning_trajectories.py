@@ -39,31 +39,31 @@ class Trainer():
         use_chimaera = True
         # check if initialization was good. If not, we will perform rollout with ground truth to not waste time!
         vio_init_good = learner.vio_init_good
-        if vio_init_good != 3:
+        # if vio_init_good != 3:
             # 直到vio_init_good为True，才会继续执行
-            check_count = 0
-            while not learner.vio_init_good and not rospy.is_shutdown():
-                rospy.logwarn("VIOS initialization is not good, waiting for it to be good!")
-                check_count += 1
-                if check_count > 10:
-                    rospy.logerr("VIO initialization is bad!")
-                    break
-                rospy.sleep(0.5)
-            
-            if vio_init_good:
-                rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
-                os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")
+        check_count = 0
+        while not learner.vio_init_good and not rospy.is_shutdown():
+            rospy.logwarn("VIOS initialization is not good, waiting for it to be good!")
+            check_count += 1
+            if check_count > 10:
+                rospy.logerr("VIO initialization is bad!")
+                break
+            rospy.sleep(0.5)
+        if vio_init_good:
+            rospy.loginfo("VINS-Mono initialization is good, switching to vision-based state estimate!")
+            os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 1'")
+        else:
+            if use_chimaera:
+                rospy.logerr("VINS-Mono initialization is poor, use orientation, bodyrates from VIO and linear velocity estimate from GT!")
+                os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 2'")
             else:
-                if use_chimaera:
-                    rospy.logerr("VINS-Mono initialization is poor, use orientation, bodyrates from VIO and linear velocity estimate from GT!")
-                    os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 2'")
-                else:
-                    rospy.logerr("VINS-Mono initialization is poor, keeping ground truth estimate!")
-                    os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
-            # Start Flying!
-            os.system("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
-            # print("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
-            # print('=== end start_experiment ===')
+                rospy.logerr("VINS-Mono initialization is poor, keeping ground truth estimate!")
+                os.system("timeout 1s rostopic pub /switch_odometry std_msgs/Int8 'data: 0'")
+        # Start Flying!
+        # send the command to start the experiment
+        os.system("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
+        # print("timeout 1s rostopic pub /hummingbird/fpv_quad_looping/execute_trajectory std_msgs/Bool 'data: true'")
+        # print('=== end start_experiment ===')
         return vio_init_good
 
     def perform_training(self):
@@ -85,10 +85,10 @@ class Trainer():
             self.trajectory_done = False
             setup_sim()
             learner.start_data_recording()
-            vio_start = self.start_experiment(learner)
-            if vio_start == 3:
-                print("VIO Initialization is bad, skipping this rollout!")
-                continue
+            self.start_experiment(learner)
+            # if vio_start == 3:
+            #     print("VIO Initialization is bad, skipping this rollout!")
+            #     continue
             print("Starting Experiment {}".format(learner.rollout_idx))
             start_time = time.time()
             time_run = 0

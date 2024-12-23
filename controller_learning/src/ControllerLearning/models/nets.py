@@ -181,7 +181,7 @@ class AggressiveNet(Network):
             padding='causal',
             activation='relu',
             return_sequences=True),
-            Flatten(),
+            Flatten(),    
             Dense(int(64 * g))
         ]
 

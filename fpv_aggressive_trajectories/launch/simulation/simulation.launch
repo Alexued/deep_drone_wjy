@@ -13,7 +13,7 @@
     <!-- Quadrotor simulation -->
     <include file="$(find controller_learning)/launch/simulation/quadrotor_rgb_world_no_controller.launch">
         <arg name="quad_name" value="$(arg quad_name)"/>
-        <arg name="gui" value="false"/>
+        <arg name="gui" value="true"/>
     </include>
     <!-- Odometry Switch -->
     <node pkg="odometry_converter" name="odometry_converter"

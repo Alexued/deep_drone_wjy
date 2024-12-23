@@ -225,10 +225,11 @@ class TrajectoryLearning(TrajectoryBase):
         # Apply Network
         # 这里产生了一次网络的推理
         # print('===before inference in _generate_control_command===')
-        start_time = datetime.datetime.now()
+        # start_time = datetime.datetime.now()
         results = self.learner.inference(inputs)
         end_time = datetime.datetime.now()
-        inference_time = end_time.microsecond - start_time.microsecond
+        # inference_time = end_time.microsecond - start_time.microsecond
+        inference_time = 0
         # print(f"====Inference time: {inference_time}====")
         if inference_time <= 10000 and inference_time >= 0:
             self.infer_time.append(abs(inference_time))
@@ -260,6 +261,9 @@ class TrajectoryLearning(TrajectoryBase):
 
         # Dagger (on control command label).
         # 不知道这里的d是给谁的，为什么要减掉control_command，为什么这样会成为后面的判断条件
+        # 这里应该有个判断条件，如果d_thrust, d_br_x, d_br_y, d_br_z都小于某个阈值，就用网络的输出，否则用专家的输出
+        # 可能是上一个control_command和这一个control_command的差值，判断稳定性？
+        # 看着像和mpc的对比
         d_thrust = control_command.collective_thrust - self.control_command.collective_thrust
         d_br_x = control_command.bodyrates.x - self.control_command.bodyrates.x
         d_br_y = control_command.bodyrates.y - self.control_command.bodyrates.y
