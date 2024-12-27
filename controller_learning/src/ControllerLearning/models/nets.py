@@ -186,45 +186,54 @@ class AggressiveNet(Network):
         ]
 
         # 这是MLP网络
-        # self.control_module = [Dense(64*g),
-        #                        activation,
-        #                        Dense(32*g),
-        #                        activation,
-        #                        Dense(16*g),
-        #                        activation,
-        #                        Dense(4)]
+        self.control_module = [Dense(64*g),
+                               activation,
+                               Dense(32*g),
+                               activation,
+                               Dense(16*g),
+                               activation,
+                               Dense(4)]
 
         # # 这里换成一维卷积
-        activation = LeakyReLU(alpha=1e-2)
+        # activation = LeakyReLU(alpha=1e-2)
         # input_shape = (self.config.batch_size, self.config.seq_len, 256)
         # inputs = tf.keras.Input(shape=(1, 256))
-        self.conv1d_control_module = [
-            tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=16, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='valid', activation=activation)
-        ]
+        # self.conv1d_control_module = [
+        #     tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=16, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='valid', activation=activation)
+        # ]
     
     def _tcn_branch(self, input):
         x = self.tcn(input)
         return x
 
     def _pointnet_branch(self, single_t_features):
+        # single_t_features: (16, 40, 5)
         x = tf.expand_dims(single_t_features, axis=1)
+        # tf.print(f"in _pointnet_branch, single_t_features shape: {single_t_features.shape}")
         for f in self.pointnet:
             x = f(x)
+        # tf.print(f"_pointnet_branch output x shape: {x.shape}")
+        # tf.print("_pointnet_branch output x values:", x)
+        # x: (16, 128)
         return x
 
     def _features_branch(self, input_features):
         preprocessed_fts = tf.map_fn(self._pointnet_branch,
                                      elems=input_features,
-                                     parallel_iterations=self.config.seq_len) # (seq_len, batch_size, 64)
-        preprocessed_fts = tf.transpose(preprocessed_fts, (1,0,2)) # (batch_size, seq_len, 64)
+                                     parallel_iterations=self.config.seq_len) # (seq_len, batch_size, 64): (3, 16, 128)
+        # tf.print(f"in _features_branch, preprocessed_fts shape: {preprocessed_fts.shape}")
+        preprocessed_fts = tf.transpose(preprocessed_fts, (1,0,2)) # (batch_size, seq_len, 64): (16, 3, 128)
+        # tf.print(f"in _features_branch, preprocessed_fts shape after transpose: {preprocessed_fts.shape}")
         x = preprocessed_fts
         # print(f"input x shape: {x.shape}")
         for f in self.fts_mergenet:
             x = f(x)
         # print(f"output x shape: {x.shape}")
+        # tf.print(f"features_branch output x shape: {x.shape}")
+        # x: (16, 128)
         return x
 
     def _states_branch(self, embeddings):
@@ -235,7 +244,7 @@ class AggressiveNet(Network):
         return x
 
     def _control_branch(self, embeddings):
-        mode = 'conv1d'
+        mode = 'dense'
         print(f"control_branch use {mode}")
         if mode == 'conv1d':
             embeddings = tf.expand_dims(embeddings, axis=1)
@@ -256,23 +265,30 @@ class AggressiveNet(Network):
         # print('现在在internal_call中')
         # start_time = datetime.datetime.now()
         # 这里是融合的地方
-        states = inputs['state']
+        states = inputs['state'] # (batch_size, seq_len, 30) (16, 3, 30)
+        # tf.print(f"states shape: {states.shape}")
         # 如果使用特征轨迹
         if self.config.use_fts_tracks:
-            fts_stack = inputs['fts']  # (batch_size, seq_len, min_numb_features, 5)
-            fts_stack = tf.transpose(fts_stack, (1,0,2,3)) # (seq_len, batch_size, min_numb_features, 5)
+            fts_stack = inputs['fts']  # (batch_size, seq_len, min_numb_features, 5): (16, 3, 40, 5)
+            # tf.print(f"fts_stack shape: {fts_stack.shape}")
+            fts_stack = tf.transpose(fts_stack, (1,0,2,3)) # (seq_len, batch_size, min_numb_features, 5): (3, 16, 40, 5)
+            # tf.print(f"fts_stack shape with transpose: {fts_stack.shape}")
             # Execute PointNet Part
             # print(f"fts_stack shape: {fts_stack.shape}")
-            fts_embeddings = self._features_branch(fts_stack) # (32, 128)
+            fts_embeddings = self._features_branch(fts_stack) # (16, 128)
+            # tf.print(f"fts_embeddings shape after _features_branch: {fts_embeddings.shape}")
             # print(f"fts_embeddings shape: {fts_embeddings.shape}")
         # print(f"states shape: {states.shape}")
-        states_embeddings = self._states_branch(states) # (32, 128)
+        states_embeddings = self._states_branch(states) # (16, 128)
+        # tf.print(f"states_embeddings shape after _states_branch: {states_embeddings.shape}")
         # print(f"states_embeddings shape: {states_embeddings.shape}")
         if self.config.use_fts_tracks:
-            total_embeddings = tf.concat((fts_embeddings, states_embeddings), axis=1) #(32, 256)
+            total_embeddings = tf.concat((fts_embeddings, states_embeddings), axis=1) #(16, 256)
+            # tf.print(f"total_embeddings shape after concat: {total_embeddings.shape}")
         else:
             total_embeddings = states_embeddings
-        output = self._control_branch(total_embeddings)
+        output = self._control_branch(total_embeddings) # (16, 4)
+        # tf.print(f"output shape after _control_branch: {output.shape}")
         # end_time = datetime.datetime.now()
         # print(f'======================Time: {end_time - start_time}======================')
         return output

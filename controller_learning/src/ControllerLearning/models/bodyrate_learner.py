@@ -73,9 +73,9 @@ class BodyrateLearner(object):
     @tf.function
     def train_step(self, inputs, labels):
         with tf.GradientTape() as tape:
-            start_time = datetime.datetime.now()
+            # start_time = datetime.datetime.now()
             predictions = self.network(inputs)
-            end_time = datetime.datetime.now()
+            # end_time = datetime.datetime.now()
             # print(f"====Inference time: {end_time - start_time}====")
             print('--------model struct start--------')
             # 注意，使用summary()方法前，需要先把不需要的层数注释掉，比如选的是conv1d,那么需要把dense层注释掉

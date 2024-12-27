@@ -49,6 +49,7 @@ bool AcrobaticSequence::appendLoops(
 
   const Eigen::Quaterniond q_W_P = Eigen::Quaterniond(
       Eigen::AngleAxisd(figure_z_rotation_angle, Eigen::Vector3d::UnitZ()));
+
   double desired_heading_loop = quadrotor_common::wrapMinusPiToPi(
       desired_heading + figure_z_rotation_angle);
 
@@ -64,11 +65,14 @@ bool AcrobaticSequence::appendLoops(
 
   // Compute Circle trajectory
   printf("compute circle trajectory\n");
-
+  // 这里是计算圆形轨迹，是轨迹的入口，轨迹包含TYPE和TrajectoryPoint，TrajectoryPoint包含时间、位置、速度、加速度、jerk、snap、orientation、heading、heading_rate、heading_acceleration、bodyrates
+  // 可以直接替换为dynamic里生成的轨迹，  
   quadrotor_common::Trajectory circle_trajectory =
       acrobatic_trajectory_helper::circles::computeVerticalCircleTrajectory(
           circle_center, figure_z_rotation_angle, radius, circle_velocity,
           M_PI / 2.0, -(3.0 / 2.0 + 2 * (n_loops - 1)) * M_PI, exec_loop_rate);
+  
+  // 这里好像是给轨迹添加heading，还有一个什么值，没看懂
   acrobatic_trajectory_helper::heading::addConstantHeading(
       desired_heading_loop, &circle_trajectory);
 
@@ -81,8 +85,8 @@ bool AcrobaticSequence::appendLoops(
 
   // enter trajectory
   printf("compute enter trajectory\n");
-  //  printf("Maximum speed: %.3f, current speed: %.3f\n", 1.1*circle_velocity,
-  //  start_state.velocity.norm());
+  printf("Maximum speed: %.3f, current speed: %.3f\n", 1.1*circle_velocity, start_state.velocity.norm());
+
   quadrotor_common::Trajectory enter_trajectory =
       acrobatic_trajectory_helper::polynomials::computeTimeOptimalTrajectory(
           start_state, circle_enter_state, 4,
@@ -112,7 +116,8 @@ bool AcrobaticSequence::appendLoops(
   quadrotor_common::Trajectory breaking_trajectory;
   breaking_trajectory.trajectory_type =
       quadrotor_common::Trajectory::TrajectoryType::GENERAL;
-
+      
+  //这里是加入轨迹的地方，后面可以直接替换为dynamic里生成的轨迹，可能需要先清空maneuver_list_，然后再加入   
   maneuver_list_.push_back(enter_trajectory);
   maneuver_list_.push_back(circle_trajectory);
   maneuver_list_.push_back(exit_trajectory);

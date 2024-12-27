@@ -68,14 +68,18 @@ void FPVAggressiveTrajectories::startExecutionCallback(
   if (msg->data) {
     // publish the reference of the current state already before maneuver
     // computation
+    // 获取当前位置状态，是从odometry中获取的gt值，并将当前位置状态作为初始位置状态
     quadrotor_common::QuadStateEstimate odom_start_computation =
         received_state_est_;
     quadrotor_common::TrajectoryPoint start_state;
     start_state.position = odom_start_computation.position;
     start_state.velocity = odom_start_computation.velocity;
     start_state.orientation = odom_start_computation.orientation;
+    // 转化为ros消息
     quadrotor_msgs::TrajectoryPoint ref_msg = start_state.toRosMessage();
+    // 在节点vio_reference中发布位置消息，现在发布的是初始位置状态的gt值
     vio_ref_pub_.publish(ref_msg);
+    // 计算轨迹，应该是一直在循环的，在这里计算轨迹然后通过vio_reference发布位置消息
     computeManeuver();
   }
   if (!msg->data) {
@@ -89,9 +93,10 @@ void FPVAggressiveTrajectories::computeManeuver() {
   trajectory_queue_.clear();
   trajectory_queue_gt_.clear();
   sent_maneuver_end_msg_ = false;
-
+  // received_state_est_是从state_estimate中获取的gt值
   quadrotor_common::QuadStateEstimate odom_start_computation =
       received_state_est_;
+  // received_state_est_gt_是从ground_truth/odometry中获取的gt值
   quadrotor_common::QuadStateEstimate odom_start_computation_gt =
       received_state_est_gt_;
 
@@ -105,6 +110,7 @@ void FPVAggressiveTrajectories::computeManeuver() {
   start_state_gt.position = odom_start_computation_gt.position;
   start_state_gt.velocity = odom_start_computation_gt.velocity;
 
+  // 初始化两个AcrobaticSequence对象，将轨迹的初始位置状态传入
   AcrobaticSequence acrobatic_sequence(start_state);
   AcrobaticSequence acrobatic_sequence_gt(start_state_gt);
 
@@ -113,6 +119,7 @@ void FPVAggressiveTrajectories::computeManeuver() {
   Eigen::Vector3d offset_circle_from_end = Eigen::Vector3d(-1.0, 0.0, 1.5);
   // standard loop
   // 这里改速度
+  // 计算轨迹
   success = success && acrobatic_sequence.appendLoops(
                            1, 4.5, 1.5, offset_circle_from_start,
                            offset_circle_from_end, true, traj_sampling_freq_);
