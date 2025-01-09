@@ -135,7 +135,7 @@ class AggressiveNet(Network):
                                 LeakyReLU(alpha=1e-2),
                                 Conv1D(int(32 * f), kernel_size=2, strides=1, padding='same', dilation_rate=1),
                             BatchNormalization(),
-                                LeakyReLU(alpha=1e-2)]#[32,3,128]
+                                LeakyReLU(alpha=1e-2)]#[16,3,128]
 
         # print(f"create use LeakyReLU(alpha=1e-2)")
         # activation layers option
@@ -220,26 +220,28 @@ class AggressiveNet(Network):
             Flatten(),    
             Dense(int(64 * g))
         ]
-
+        g = 2.0
         # 这是MLP网络
-        # self.control_module = [Dense(64*g),
-        #                        activation,
-        #                        Dense(32*g),
-        #                        activation,
-        #                        Dense(16*g),
-        #                        activation,
-        #                        Dense(4)]
+        self.control_module = [Dense(128*g),
+                               activation,
+                               Dense(64*g),
+                               activation,
+                               Dense(32*g),
+                               activation,
+                               Dense(16*g),
+                               activation,
+                               Dense(5)]
 
         # # 这里换成一维卷积
         activation = LeakyReLU(alpha=1e-2)
         # input_shape = (self.config.batch_size, self.config.seq_len, 256)
         # inputs = tf.keras.Input(shape=(1, 256))
-        self.conv1d_control_module = [
-            tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=16, kernel_size=1, padding='valid', activation=activation),
-            tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='valid', activation=activation)
-        ]
+        # self.conv1d_control_module = [
+        #     tf.keras.layers.Conv1D(filters=64, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=32, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=16, kernel_size=1, padding='valid', activation=activation),
+        #     tf.keras.layers.Conv1D(filters=4, kernel_size=1, padding='valid', activation=activation)
+        # ]
 
 
     def _conv_branch(self, image):
@@ -340,7 +342,7 @@ class AggressiveNet(Network):
         # One of them passed, so need to process it
         img_seq = tf.transpose(img_seq, (1, 0, 2, 3, 4))  # (seq_len, batch_size, img_height, img_width, N)
         img_embeddings = self._image_branch(img_seq)#mergment
-        return img_embeddings#[32,3,128] 3 is time_step
+        return img_embeddings#[16,3,128] 3 is time_step
 
     def _internal_call(self, inputs):
         # print('现在在internal_call中')
@@ -353,14 +355,14 @@ class AggressiveNet(Network):
             fts_stack = tf.transpose(fts_stack, (1,0,2,3)) # (seq_len, batch_size, min_numb_features, 5)
             # Execute PointNet Part
             # print(f"fts_stack shape: {fts_stack.shape}")
-            fts_embeddings = self._features_branch(fts_stack) # (32, 128)
+            fts_embeddings = self._features_branch(fts_stack) # (16, 128)
             # print(f"fts_embeddings shape: {fts_embeddings.shape}")
         # print(f"states shape: {states.shape}")
-        states_embeddings = self._states_branch(states) # (32,3,128)
+        states_embeddings = self._states_branch(states) # (16,3,128)
         img_embeddings = self._preprocess_frames(inputs['sgm_depth']) # (32,3,128)
         # print(f"states_embeddings shape: {states_embeddings.shape}")
         if self.config.use_fts_tracks:
-            total_embeddings = tf.concat((fts_embeddings, states_embeddings, img_embeddings), axis=1) #(32, 256)
+            total_embeddings = tf.concat((fts_embeddings, states_embeddings, img_embeddings), axis=1) #(16, 384)
         else:
             total_embeddings = states_embeddings
         output = self._control_branch(total_embeddings)

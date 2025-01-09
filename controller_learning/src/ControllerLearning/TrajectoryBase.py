@@ -30,7 +30,7 @@ class TrajectoryBase(object):
         - mode: 运行模式，可以是'training'、'evaluation'或'inference'。
 
         返回:
-        无返回值，但根据mode参数的不同，可能会提前返回。
+        无返回值,但根据mode参数的不同,可能会提前返回。
         """
         # 初始化配置和里程计对象
         self.config = config
@@ -194,10 +194,12 @@ class TrajectoryBase(object):
     def callback_fts(self, data):
         if (not self.config.use_fts_tracks) and (self.mode == 'testing'):
             return
+        print(f"fts data: {data}")
         features = self.preprocess_fts(data)
         if len(features.keys()) != 0:
             # Update features only if something is available
             self.features = features
+            print(f"in callback_fts, features: {self.features}")
             preprocessed_fts = self.add_missing_fts(self.features)
             self.fts_queue.append(preprocessed_fts)
             self.features_input = np.stack([np.stack([v for v in self.fts_queue[j].values()]) \
@@ -244,7 +246,7 @@ class TrajectoryBase(object):
         self.gt_odometry = data
 
     def callback_ref(self, data):
-        # 输出的vio参考状态估计
+        # 输出的ref参考状态估计
         self.ref_state = data
         self.ref_rot = R.from_quat([self.ref_state.pose.orientation.x,
                                     self.ref_state.pose.orientation.y,

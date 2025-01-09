@@ -168,6 +168,7 @@ class TrajectoryLearning(TrajectoryBase):
             fts_name = '{:08d}.npy'
             fts_filename = os.path.join(self.image_save_dir,
                                         fts_name.format(self.recorded_samples))
+            print(f"in save_data, self.features: {self.features}")
             np.save(fts_filename, self.features)
             self.recorded_samples += 1
 
@@ -244,7 +245,8 @@ class TrajectoryLearning(TrajectoryBase):
         control_command.bodyrates.z = results[0][3].numpy()
         self.net_control = control_command
         # print(f'self.net_control: {self.net_control}')
-
+        
+        print(f"in _generate_control_command, self.features: {self.features}")
         # Log immediately everything to avoid surprises (if required)
         if self.record_data:
             self.save_data()
